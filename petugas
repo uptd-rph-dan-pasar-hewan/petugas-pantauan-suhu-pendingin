@@ -1,0 +1,2074 @@
+<!DOCTYPE html>
+<html lang="id">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <title>Petugas Input Suhu - UPTD RPH dan Pasar Hewan</title>
+
+    <!-- Tailwind CSS -->
+    <script src="https://cdn.jsdelivr.net/npm/@tailwindcss/browser@4"></script>
+    <!-- Font Awesome Icons -->
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+
+    <!-- jsPDF & AutoTable untuk Cetak PDF Rapi Tanpa Terpotong -->
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf-autotable/3.8.2/jspdf.plugin.autotable.min.js"></script>
+
+    <!-- Firebase SDK (Compatibility Version) -->
+    <script src="https://www.gstatic.com/firebasejs/10.7.1/firebase-app-compat.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/10.7.1/firebase-database-compat.js"></script>
+
+    <style>
+        html, body {
+            touch-action: manipulation;
+            -webkit-text-size-adjust: 100%;
+        }
+        body {
+            font-family: ui-sans-serif, system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif;
+        }
+        @media (max-width: 768px) {
+            input, select, textarea {
+                font-size: 16px !important;
+            }
+        }
+        .sidebar-link-active {
+            background-color: #0284c7;
+            color: #ffffff;
+            box-shadow: 0 4px 12px rgba(2, 132, 199, 0.35);
+        }
+        ::-webkit-scrollbar {
+            height: 6px;
+            width: 6px;
+        }
+        ::-webkit-scrollbar-thumb {
+            background: #cbd5e1;
+            border-radius: 9999px;
+        }
+
+        /* ==================== ANIMASI NOTIFIKASI DATA TERKIRIM ==================== */
+        @keyframes notifPopIn {
+            0% {
+                opacity: 0;
+                transform: scale(0.82) translateY(16px);
+            }
+            65% {
+                opacity: 1;
+                transform: scale(1.03) translateY(-2px);
+            }
+            100% {
+                opacity: 1;
+                transform: scale(1) translateY(0);
+            }
+        }
+        @keyframes notifPopOut {
+            0% {
+                opacity: 1;
+                transform: scale(1) translateY(0);
+            }
+            100% {
+                opacity: 0;
+                transform: scale(0.9) translateY(10px);
+            }
+        }
+        @keyframes pulseRing {
+            0% {
+                transform: scale(0.85);
+                opacity: 0.7;
+            }
+            100% {
+                transform: scale(1.55);
+                opacity: 0;
+            }
+        }
+        @keyframes drawCircle {
+            0% {
+                stroke-dashoffset: 166;
+            }
+            100% {
+                stroke-dashoffset: 0;
+            }
+        }
+        @keyframes drawCheck {
+            0% {
+                stroke-dashoffset: 48;
+            }
+            100% {
+                stroke-dashoffset: 0;
+            }
+        }
+        @keyframes progressShrink {
+            0% {
+                width: 100%;
+            }
+            100% {
+                width: 0%;
+            }
+        }
+        .anim-notif-in {
+            animation: notifPopIn 0.42s cubic-bezier(0.22, 1, 0.36, 1) forwards;
+        }
+        .anim-notif-out {
+            animation: notifPopOut 0.24s ease-in forwards;
+        }
+        .anim-pulse-ring {
+            animation: pulseRing 1.3s cubic-bezier(0.22, 1, 0.36, 1) infinite;
+        }
+        .svg-check-circle {
+            stroke-dasharray: 166;
+            stroke-dashoffset: 166;
+            animation: drawCircle 0.55s cubic-bezier(0.65, 0, 0.45, 1) 0.1s forwards;
+        }
+        .svg-check-mark {
+            stroke-dasharray: 48;
+            stroke-dashoffset: 48;
+            animation: drawCheck 0.35s cubic-bezier(0.65, 0, 0.45, 1) 0.48s forwards;
+        }
+        .anim-progress-bar {
+            animation: progressShrink 3.5s linear forwards;
+        }
+    </style>
+</head>
+<body class="bg-white text-slate-800 antialiased min-h-screen overflow-hidden">
+
+    <!-- ==================== HALAMAN LOGIN PILIH UNIT (TERKUNCI TANPA SCROLL) ==================== -->
+    <div id="login-screen" class="fixed inset-0 h-dvh w-full overflow-hidden touch-none bg-gradient-to-br from-sky-950 via-slate-900 to-cyan-950 flex items-center justify-center p-4 z-50">
+        <div class="w-full max-w-lg max-h-[calc(100dvh-2rem)] bg-white rounded-3xl shadow-2xl border border-slate-200 overflow-hidden flex flex-col">
+            <div class="bg-gradient-to-r from-sky-900 via-sky-800 to-cyan-800 px-6 py-6 text-center text-white shrink-0">
+                <img id="login-logo"
+                    src="data:image/svg+xml;utf8,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 64 64'%3E%3Cdefs%3E%3ClinearGradient id='g' x1='0' y1='0' x2='1' y2='1'%3E%3Cstop offset='0%25' stop-color='%230284c7'/%3E%3Cstop offset='100%25' stop-color='%2306b6d4'/%3E%3C/linearGradient%3E%3C/defs%3E%3Crect width='64' height='64' rx='14' fill='url(%23g)'/%3E%3Cpath d='M32 10v44M13 21l38 22M51 21L13 43' stroke='%23ffffff' stroke-width='3.5' stroke-linecap='round'/%3E%3Ccircle cx='32' cy='32' r='7' fill='%230f172a' stroke='%23ffffff' stroke-width='3'/%3E%3C/svg%3E"
+                    alt="Logo UPTD RPH dan Pasar Hewan"
+                    class="w-14 h-14 sm:w-16 sm:h-16 rounded-2xl object-cover border-2 border-white/30 bg-white mx-auto shadow-lg">
+                <h1 class="text-base sm:text-lg font-black uppercase tracking-wide mt-3.5 leading-snug">
+                    UPTD RPH DAN PASAR HEWAN
+                </h1>
+                <p class="text-xs text-cyan-200 font-semibold mt-1">
+                    Petugas Input Suhu Pendingin
+                </p>
+            </div>
+
+            <div class="p-5 sm:p-8 text-center space-y-4 overflow-hidden">
+                <div>
+                    <h2 class="text-sm sm:text-base font-bold text-slate-800">Pilih Unit untuk Masuk</h2>
+                    <p class="text-xs text-slate-500 mt-1">Klik salah satu unit terdaftar di bawah ini</p>
+                </div>
+
+                <!-- Tombol Unit Terdaftar Sejajar (misal RPH dan RPU) -->
+                <div id="login-unit-buttons" class="flex flex-wrap items-center justify-center gap-3">
+                    <span class="text-xs text-slate-400">Memuat daftar unit...</span>
+                </div>
+
+                <div class="pt-3 border-t border-slate-100 flex items-center justify-center gap-2 text-[11px] text-slate-400">
+                    <span id="login-sync-status">Menghubungkan ke database...</span>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- ==================== SHELL APLIKASI UTAMA (MUNCUL SETELAH PILIH UNIT) ==================== -->
+    <div id="app-shell" class="hidden min-h-screen w-full flex">
+
+        <!-- OVERLAY SIDEBAR (MOBILE) -->
+        <div id="sidebar-overlay" onclick="setSidebar(false)" class="fixed inset-0 bg-black/60 backdrop-blur-[1px] z-40 hidden lg:hidden transition-opacity"></div>
+
+        <!-- SIDEBAR NAVIGASI PETUGAS -->
+        <aside id="app-sidebar"
+            class="fixed inset-y-0 left-0 z-50 w-72 shrink-0 bg-slate-900 text-slate-200 flex flex-col justify-between shadow-2xl transition-all duration-300 ease-in-out -translate-x-full lg:sticky lg:top-0 lg:h-screen lg:translate-x-0">
+            
+            <div class="flex flex-col flex-1 overflow-y-auto">
+                <!-- Header Sidebar dengan Logo + Tombol Tutup -->
+                <div class="px-4 py-4 bg-slate-950 border-b border-slate-800 flex items-center justify-between gap-2">
+                    <div class="flex items-center gap-2.5 min-w-0">
+                        <img id="sidebar-logo"
+                            src="data:image/svg+xml;utf8,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 64 64'%3E%3Cdefs%3E%3ClinearGradient id='g' x1='0' y1='0' x2='1' y2='1'%3E%3Cstop offset='0%25' stop-color='%230284c7'/%3E%3Cstop offset='100%25' stop-color='%2306b6d4'/%3E%3C/linearGradient%3E%3C/defs%3E%3Crect width='64' height='64' rx='14' fill='url(%23g)'/%3E%3Cpath d='M32 10v44M13 21l38 22M51 21L13 43' stroke='%23ffffff' stroke-width='3.5' stroke-linecap='round'/%3E%3Ccircle cx='32' cy='32' r='7' fill='%230f172a' stroke='%23ffffff' stroke-width='3'/%3E%3C/svg%3E"
+                            alt="Logo UPTD RPH dan Pasar Hewan"
+                            class="w-10 h-10 rounded-xl object-cover border border-sky-400/40 bg-white shrink-0">
+                        <div class="min-w-0">
+                            <p class="text-[11px] font-black tracking-wide text-white uppercase leading-snug">Petugas Input Suhu</p>
+                            <p class="text-[10px] text-cyan-300 font-semibold leading-snug">UPTD RPH &amp; Pasar Hewan</p>
+                        </div>
+                    </div>
+                    <button type="button" onclick="setSidebar(false)" title="Tutup Menu"
+                        class="w-8 h-8 rounded-lg bg-slate-800 hover:bg-slate-700 text-slate-400 hover:text-white flex items-center justify-center transition-colors cursor-pointer shrink-0">
+                        <i class="fa-solid fa-xmark text-sm"></i>
+                    </button>
+                </div>
+
+                <!-- Unit Login Aktif -->
+                <div class="px-4 py-3 border-b border-slate-800/80 bg-sky-950/60 flex items-center justify-between text-[11px]">
+                    <span class="text-slate-300 font-medium">Unit Aktif</span>
+                    <span id="sidebar-unit-aktif" class="text-[11px] font-black px-2.5 py-0.5 rounded-full bg-sky-500/20 text-cyan-300 border border-sky-400/40">
+                        -
+                    </span>
+                </div>
+
+                <!-- Status Sinkronisasi -->
+                <div class="px-4 py-2.5 border-b border-slate-800/80 bg-slate-900/60 flex items-center justify-between text-[11px]">
+                    <span class="text-slate-400 font-medium">Status Sinkronisasi</span>
+                    <span id="badge-koneksi" class="text-[10px] font-bold px-2.5 py-0.5 rounded-full bg-emerald-500/20 text-emerald-300 border border-emerald-400/30">
+                        <i class="fa-solid fa-circle text-[7px] mr-1 animate-pulse"></i>Aktif
+                    </span>
+                </div>
+
+                <!-- MENU PETUGAS: INPUT SUHU, DIAGRAM GRAFIK, & RIWAYAT -->
+                <nav class="p-3 space-y-1.5 flex-1">
+                    <p class="px-3 pt-1 pb-1 text-[10px] font-bold text-slate-500 uppercase tracking-wider">Menu Petugas</p>
+
+                    <button type="button" onclick="pilihMenu('input-suhu')" data-menu="input-suhu"
+                        class="sidebar-btn sidebar-link-active w-full flex items-center gap-3 px-3.5 py-2.5 rounded-xl text-xs font-semibold text-left transition-all cursor-pointer">
+                        <i class="fa-solid fa-temperature-half w-4 text-center"></i>
+                        <span>Input Suhu</span>
+                    </button>
+
+                    <button type="button" onclick="pilihMenu('diagram-grafik')" data-menu="diagram-grafik"
+                        class="sidebar-btn w-full flex items-center gap-3 px-3.5 py-2.5 rounded-xl text-xs font-semibold text-slate-300 hover:bg-slate-800 hover:text-white text-left transition-all cursor-pointer">
+                        <i class="fa-solid fa-chart-line w-4 text-center text-emerald-400"></i>
+                        <span>Diagram Grafik</span>
+                    </button>
+
+                    <button type="button" onclick="pilihMenu('riwayat')" data-menu="riwayat"
+                        class="sidebar-btn w-full flex items-center gap-3 px-3.5 py-2.5 rounded-xl text-xs font-semibold text-slate-300 hover:bg-slate-800 hover:text-white text-left transition-all cursor-pointer">
+                        <i class="fa-solid fa-clock-rotate-left w-4 text-center text-cyan-400"></i>
+                        <span>Riwayat</span>
+                    </button>
+                </nav>
+            </div>
+
+            <!-- Footer Sidebar -->
+            <div class="p-4 bg-slate-950 border-t border-slate-800 space-y-2.5">
+                <button type="button" onclick="logoutUnit()"
+                    class="w-full bg-rose-600/90 hover:bg-rose-600 text-white text-xs font-bold py-2.5 px-4 rounded-xl transition-colors flex items-center justify-center gap-2 cursor-pointer shadow-sm">
+                    <i class="fa-solid fa-right-from-bracket"></i>
+                    <span>Ganti Unit / Keluar</span>
+                </button>
+                <p class="text-[10px] text-center text-slate-500">UPTD RPH dan Pasar Hewan</p>
+            </div>
+        </aside>
+
+        <!-- AREA KONTEN FULLSCREEN -->
+        <div class="flex-1 flex flex-col min-w-0 bg-white">
+
+            <!-- HEADER ATAS -->
+            <header class="bg-gradient-to-r from-sky-900 via-sky-800 to-cyan-800 text-white sticky top-0 z-30 shadow-md">
+                <div class="px-3.5 sm:px-6 py-3 flex items-center justify-between gap-2.5">
+                    <div class="flex items-center gap-3 min-w-0 flex-1">
+                        <!-- Tombol Buka / Tutup Sidebar -->
+                        <button type="button" onclick="toggleSidebar()" title="Buka / Tutup Menu"
+                            class="w-10 h-10 rounded-xl bg-white/15 hover:bg-white/25 border border-white/20 flex items-center justify-center transition-colors shrink-0 cursor-pointer">
+                            <i class="fa-solid fa-bars text-base"></i>
+                        </button>
+
+                        <div class="min-w-0 flex-1">
+                            <h1 class="text-[13px] sm:text-sm md:text-base font-black tracking-tight uppercase leading-snug break-words whitespace-normal">
+                                Petugas Input Suhu Pendingin UPTD RPH dan Pasar Hewan
+                            </h1>
+                        </div>
+                    </div>
+
+                    <button type="button" onclick="logoutUnit()"
+                        class="bg-white/15 hover:bg-white/25 border border-white/20 text-white text-[11px] font-bold px-3 py-2 rounded-xl transition-colors flex items-center gap-1.5 cursor-pointer shrink-0">
+                        <i class="fa-solid fa-right-left"></i>
+                        <span>Ganti Unit</span>
+                    </button>
+                </div>
+            </header>
+
+            <!-- KONTEN FULLSCREEN PER MENU -->
+            <main class="flex-1 w-full bg-white flex flex-col">
+
+                <!-- ==================== 1. MENU INPUT SUHU ==================== -->
+                <section id="sec-input-suhu" class="menu-section flex-1 w-full flex flex-col">
+                    <!-- BAR WAKTU & TANGGAL REALTIME -->
+                    <div class="bg-gradient-to-r from-slate-900 via-sky-950 to-cyan-950 text-white px-4 sm:px-6 py-4 flex flex-col sm:flex-row sm:items-center justify-between gap-3 border-b border-sky-800/40">
+                        <div class="flex items-center gap-3">
+                            <div class="w-10 h-10 rounded-xl bg-cyan-500/20 border border-cyan-400/30 flex items-center justify-center text-cyan-300 shrink-0">
+                                <i class="fa-regular fa-clock text-lg"></i>
+                            </div>
+                            <div>
+                                <p class="text-[10px] font-bold text-cyan-300 uppercase tracking-wider">Tanggal &amp; Waktu Real-Time (Otomatis)</p>
+                                <p id="realtime-tanggal" class="text-xs sm:text-sm font-bold text-white mt-0.5">Memuat tanggal...</p>
+                            </div>
+                        </div>
+                        <div class="sm:text-right bg-white/10 rounded-xl px-4 py-2 border border-white/15">
+                            <p class="text-[10px] text-sky-200 uppercase font-bold tracking-wider">Jam Sekarang</p>
+                            <p id="realtime-jam" class="text-lg sm:text-2xl font-black tracking-wider text-emerald-300 font-mono">00:00:00</p>
+                        </div>
+                    </div>
+
+                    <!-- FORM INPUT SUHU PETUGAS -->
+                    <div class="flex-1 w-full bg-white">
+                        <div class="px-4 sm:px-6 py-4 border-b border-slate-100 bg-slate-50/70 flex items-center gap-2.5">
+                            <div class="w-9 h-9 rounded-xl bg-emerald-100 text-emerald-600 flex items-center justify-center shrink-0">
+                                <i class="fa-solid fa-temperature-half text-base"></i>
+                            </div>
+                            <div>
+                                <h2 class="text-sm sm:text-base font-bold text-slate-800">Formulir Input Suhu Pendingin</h2>
+                                <p id="form-subtitle-unit" class="text-[11px] text-slate-500">Pilih petugas, unit, jenis pendingin, suhu, dan foto bukti</p>
+                            </div>
+                        </div>
+
+                        <form id="form-petugas-suhu" onsubmit="simpanInputPetugas(event)" class="p-4 sm:p-6 space-y-4 text-xs">
+                            <!-- Pesan Error / Sukses -->
+                            <div id="alert-error" class="hidden bg-rose-50 border border-rose-200 text-rose-700 px-4 py-3 rounded-xl flex items-start gap-2.5 font-medium">
+                                <i class="fa-solid fa-circle-exclamation text-rose-500 text-base shrink-0 mt-0.5"></i>
+                                <span id="alert-error-text">Terjadi kesalahan.</span>
+                            </div>
+
+                            <div id="alert-success" class="hidden bg-emerald-50 border border-emerald-200 text-emerald-800 px-4 py-3 rounded-xl flex items-start gap-2.5 font-medium">
+                                <i class="fa-solid fa-circle-check text-emerald-600 text-base shrink-0 mt-0.5"></i>
+                                <div class="flex-1">
+                                    <p class="font-bold">Laporan Suhu Berhasil Dikirim!</p>
+                                    <p id="alert-success-text" class="text-[11px] text-emerald-700 mt-0.5">Data suhu dan foto bukti telah tersimpan.</p>
+                                    <div class="flex flex-wrap items-center gap-3 mt-2">
+                                        <button type="button" onclick="pilihMenu('riwayat')"
+                                            class="inline-flex items-center gap-1.5 text-[11px] font-bold text-emerald-800 underline hover:text-emerald-950 cursor-pointer">
+                                            <span>Lihat di Menu Riwayat</span>
+                                            <i class="fa-solid fa-arrow-right"></i>
+                                        </button>
+                                        <button type="button" onclick="pilihMenu('diagram-grafik')"
+                                            class="inline-flex items-center gap-1.5 text-[11px] font-bold text-sky-800 underline hover:text-sky-950 cursor-pointer">
+                                            <span>Lihat Diagram Grafik</span>
+                                            <i class="fa-solid fa-chart-line"></i>
+                                        </button>
+                                    </div>
+                                </div>
+                            </div>
+
+                            <!-- 1. Nama Petugas & Unit -->
+                            <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+                                <div>
+                                    <label for="inp-nama-petugas" class="block text-[11px] font-bold text-slate-700 uppercase tracking-wide mb-1.5">
+                                        Nama Petugas *
+                                    </label>
+                                    <select id="inp-nama-petugas" required
+                                        class="w-full px-3.5 py-3 bg-slate-50 border border-slate-200 rounded-xl text-sm font-semibold focus:outline-none focus:ring-2 focus:ring-sky-500/25 focus:border-sky-500 transition-all">
+                                        <option value="">-- Pilih Nama Petugas --</option>
+                                    </select>
+                                </div>
+
+                                <div>
+                                    <label for="inp-unit-petugas" class="block text-[11px] font-bold text-slate-700 uppercase tracking-wide mb-1.5">
+                                        Unit *
+                                    </label>
+                                    <select id="inp-unit-petugas" required
+                                        class="w-full px-3.5 py-3 bg-slate-50 border border-slate-200 rounded-xl text-sm font-semibold focus:outline-none focus:ring-2 focus:ring-sky-500/25 focus:border-sky-500 transition-all">
+                                        <option value="">-- Pilih Unit --</option>
+                                    </select>
+                                </div>
+                            </div>
+
+                            <!-- 2. Jenis Pendingin & Suhu Terukur -->
+                            <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+                                <div>
+                                    <label for="inp-jenis-ruangan" class="block text-[11px] font-bold text-slate-700 uppercase tracking-wide mb-1.5">
+                                        Jenis Pendingin *
+                                    </label>
+                                    <select id="inp-jenis-ruangan" required
+                                        class="w-full px-3.5 py-3 bg-slate-50 border border-slate-200 rounded-xl text-sm font-semibold focus:outline-none focus:ring-2 focus:ring-sky-500/25 focus:border-sky-500 transition-all">
+                                        <option value="">-- Pilih Jenis Pendingin --</option>
+                                    </select>
+                                </div>
+
+                                <div>
+                                    <label for="inp-suhu" class="block text-[11px] font-bold text-slate-700 uppercase tracking-wide mb-1.5">
+                                        Suhu Terukur (°C) *
+                                    </label>
+                                    <div class="relative">
+                                        <input type="number" step="0.1" id="inp-suhu" required
+                                            placeholder="Contoh: 2.5 atau -18.0"
+                                            class="w-full pl-4 pr-12 py-3 bg-slate-50 border border-slate-200 rounded-xl text-base font-black text-slate-800 focus:outline-none focus:ring-2 focus:ring-emerald-500/25 focus:border-emerald-500 transition-all">
+                                        <span class="absolute inset-y-0 right-0 pr-4 flex items-center text-sm font-bold text-slate-400">°C</span>
+                                    </div>
+                                </div>
+                            </div>
+
+                            <!-- 3. Ambil Foto Kamera HP / Upload Galeri -->
+                            <div>
+                                <label class="block text-[11px] font-bold text-slate-700 uppercase tracking-wide mb-1.5">
+                                    Foto Bukti Suhu (Kamera HP / Upload File Maks. 10 MB) *
+                                </label>
+
+                                <div class="grid grid-cols-1 sm:grid-cols-2 gap-2.5">
+                                    <!-- Kamera Bawaan HP (Selalu Jalan di Android/iOS tanpa perlu HTTPS) -->
+                                    <label for="inp-foto-kamera-native"
+                                        class="w-full py-3 px-3.5 rounded-xl bg-emerald-600 hover:bg-emerald-700 active:scale-[0.99] text-white font-bold text-xs shadow-sm transition-all flex items-center justify-center gap-2 cursor-pointer">
+                                        <i class="fa-solid fa-camera text-sm"></i>
+                                        <span>Kamera HP</span>
+                                    </label>
+
+                                    <!-- Pilih File / Galeri -->
+                                    <label for="inp-foto"
+                                        class="w-full py-3 px-3.5 rounded-xl bg-slate-100 hover:bg-slate-200 active:scale-[0.99] text-slate-700 border border-slate-300 font-bold text-xs transition-all flex items-center justify-center gap-2 cursor-pointer">
+                                        <i class="fa-solid fa-folder-open text-sm text-sky-700"></i>
+                                        <span>Pilih File / Galeri</span>
+                                    </label>
+                                </div>
+
+                                <!-- Input File menggunakan sr-only agar kompatibel di semua browser HP & iOS -->
+                                <input type="file" id="inp-foto" accept=".jpg,.jpeg,.png,image/jpeg,image/png"
+                                    onchange="validasiDanPreviewFoto(event)" class="sr-only">
+                                <input type="file" id="inp-foto-kamera-native" accept="image/*" capture="environment"
+                                    onchange="validasiDanPreviewFoto(event)" class="sr-only">
+
+                                <p id="info-foto" class="text-[11px] text-slate-400 mt-1.5">
+                                    Gunakan <b>Kamera HP</b> atau <b>Pilih File / Galeri</b> (maks. <b>10 MB</b>, otomatis dioptimalkan agar pengiriman cepat &amp; tidak lag).
+                                </p>
+
+                                <!-- Preview Gambar -->
+                                <div id="wrap-preview-foto" class="hidden mt-3 p-3 rounded-xl bg-slate-50 border border-slate-200 flex items-center gap-3">
+                                    <div id="wrap-avatar-preview" class="relative w-16 h-16 shrink-0">
+                                        <img id="img-preview-foto" src="" alt="Preview Foto Suhu"
+                                            class="w-16 h-16 rounded-full object-cover border-2 border-sky-300 bg-white cursor-pointer"
+                                            onclick="bukaPopupFoto(this.src, document.getElementById('nama-file-foto').innerText, 'Preview Foto Bukti')">
+                                        <div id="spinner-preview-foto" class="hidden absolute inset-0 rounded-full bg-white/85 border-2 border-sky-300 flex items-center justify-center text-sky-700">
+                                            <i class="fa-solid fa-spinner fa-spin text-base"></i>
+                                        </div>
+                                    </div>
+                                    <div class="min-w-0 flex-1">
+                                        <p id="nama-file-foto" class="text-xs font-bold text-slate-800 truncate">Foto</p>
+                                        <p id="ukuran-file-foto" class="text-[11px] text-emerald-700 font-semibold mt-0.5">Siap dikirim</p>
+                                        <div class="flex flex-wrap items-center gap-3 mt-1.5">
+                                            <label for="inp-foto-kamera-native"
+                                                class="text-[11px] font-bold text-sky-700 hover:underline cursor-pointer">
+                                                <i class="fa-solid fa-camera-rotate mr-1"></i>Foto Ulang
+                                            </label>
+                                            <button type="button" onclick="hapusPilihanFoto()"
+                                                class="text-[11px] font-bold text-rose-600 hover:underline cursor-pointer">
+                                                <i class="fa-solid fa-trash-can mr-1"></i>Hapus Foto
+                                            </button>
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+
+                            <!-- 4. Catatan Pemeriksaan (Opsional) -->
+                            <div>
+                                <label for="inp-catatan" class="block text-[11px] font-bold text-slate-700 uppercase tracking-wide mb-1.5">
+                                    Catatan Pemeriksaan (Opsional)
+                                </label>
+                                <textarea id="inp-catatan" rows="2" placeholder="Contoh: Kondisi pintu rapat, display suhu normal..."
+                                    class="w-full px-3.5 py-2.5 bg-slate-50 border border-slate-200 rounded-xl text-sm focus:outline-none focus:ring-2 focus:ring-sky-500/25 focus:border-sky-500"></textarea>
+                            </div>
+
+                            <!-- Tombol Kirim -->
+                            <button type="submit" id="btn-kirim-suhu"
+                                class="w-full bg-emerald-600 hover:bg-emerald-700 active:scale-[0.99] disabled:opacity-60 disabled:cursor-not-allowed text-white font-bold text-sm py-3.5 rounded-xl shadow-lg shadow-emerald-600/25 transition-all flex items-center justify-center gap-2 cursor-pointer">
+                                <i class="fa-solid fa-paper-plane"></i>
+                                <span>SIMPAN &amp; KIRIM DATA SUHU</span>
+                            </button>
+                        </form>
+                    </div>
+                </section>
+
+                <!-- ==================== 2. MENU DIAGRAM GRAFIK (KHUSUS UNIT MASING-MASING) ==================== -->
+                <section id="sec-diagram-grafik" class="menu-section hidden flex-1 w-full bg-slate-50 flex flex-col">
+                    <div class="px-4 sm:px-6 py-4 border-b border-slate-200 bg-white flex flex-wrap items-center justify-between gap-3">
+                        <div class="flex items-center gap-2.5">
+                            <div class="w-9 h-9 rounded-xl bg-emerald-100 text-emerald-700 flex items-center justify-center shrink-0">
+                                <i class="fa-solid fa-chart-line text-base"></i>
+                            </div>
+                            <div>
+                                <h2 class="text-sm sm:text-base font-bold text-slate-800">
+                                    Diagram Grafik Suhu &mdash; Unit <span id="grafik-nama-unit" class="text-sky-700 uppercase">-</span>
+                                </h2>
+                                <p id="grafik-count-info" class="text-[11px] text-slate-500">Menampilkan grafik jenis pendingin khusus unit Anda</p>
+                            </div>
+                        </div>
+
+                        <div class="flex flex-wrap items-center gap-2 w-full sm:w-auto">
+                            <input type="date" id="filter-grafik-tanggal" onchange="renderDiagramGrafik()" title="Filter Tanggal Grafik"
+                                class="flex-1 sm:flex-initial text-xs bg-slate-50 border border-slate-200 rounded-xl px-3 py-2 focus:outline-none focus:border-sky-500 font-semibold">
+                            <button type="button" onclick="resetFilterTanggalGrafik()"
+                                class="text-xs font-bold px-3 py-2 rounded-xl bg-slate-100 hover:bg-slate-200 text-slate-700 border border-slate-200 cursor-pointer shrink-0">
+                                Semua Tanggal
+                            </button>
+                        </div>
+                    </div>
+
+                    <div class="p-3.5 sm:p-6 flex-1 w-full">
+                        <div id="container-diagram-grafik" class="grid grid-cols-1 lg:grid-cols-2 gap-4">
+                            <div class="col-span-full py-10 text-center text-xs text-slate-400">Memuat diagram grafik jenis pendingin...</div>
+                        </div>
+                    </div>
+                </section>
+
+                <!-- ==================== 3. MENU RIWAYAT ==================== -->
+                <section id="sec-riwayat" class="menu-section hidden flex-1 w-full bg-white flex flex-col">
+                    <div class="px-3.5 sm:px-6 py-4 border-b border-slate-200 bg-slate-50/70 flex flex-wrap items-center justify-between gap-3">
+                        <div class="flex items-center gap-2.5">
+                            <div class="w-8 h-8 rounded-lg bg-sky-100 text-sky-600 flex items-center justify-center shrink-0">
+                                <i class="fa-solid fa-clock-rotate-left"></i>
+                            </div>
+                            <div>
+                                <h2 class="text-sm sm:text-base font-bold text-slate-800">Riwayat Input Suhu Pendingin</h2>
+                                <p id="riwayat-count-info" class="text-[11px] text-slate-500">0 catatan suhu tersimpan</p>
+                            </div>
+                        </div>
+
+                        <div class="flex flex-wrap items-center gap-2 w-full sm:w-auto">
+                            <input type="date" id="filter-riwayat-tanggal" onchange="resetPageDanRenderRiwayat()" title="Filter Tanggal"
+                                class="text-xs bg-white border border-slate-200 rounded-xl px-3 py-2 focus:outline-none focus:border-sky-500 font-semibold">
+                            <input type="text" id="cari-riwayat" oninput="resetPageDanRenderRiwayat()" placeholder="Cari petugas / jenis pendingin..."
+                                class="flex-1 sm:w-48 text-xs px-3 py-2 bg-white border border-slate-200 rounded-xl focus:outline-none focus:border-sky-500">
+                            <button type="button" id="btn-cetak-pdf" onclick="cetakPdfRiwayat()"
+                                class="bg-rose-600 hover:bg-rose-700 active:scale-[0.98] text-white text-xs font-bold px-3.5 py-2 rounded-xl transition-all flex items-center gap-1.5 shadow-sm cursor-pointer shrink-0">
+                                <i class="fa-solid fa-file-pdf"></i>
+                                <span>Cetak PDF</span>
+                            </button>
+                        </div>
+                    </div>
+
+                    <div class="p-2 sm:p-5 flex-1 w-full">
+                        <div class="border border-slate-300 rounded-xl overflow-hidden w-full">
+                            <table class="w-full table-fixed text-left border-collapse">
+                                <thead>
+                                    <tr class="bg-sky-800 text-white text-[9px] sm:text-[11px] font-bold uppercase tracking-tight sm:tracking-wider">
+                                        <th class="border border-slate-400 w-[8%] px-1 sm:px-3 py-2 sm:py-3 text-center">No</th>
+                                        <th class="border border-slate-400 w-[20%] px-1 sm:px-3.5 py-2 sm:py-3 leading-tight">Tanggal &amp; Waktu</th>
+                                        <th class="border border-slate-400 w-[19%] px-1.5 sm:px-3.5 py-2 sm:py-3 leading-tight">Nama Petugas</th>
+                                        <th class="border border-slate-400 w-[27%] px-1.5 sm:px-4 py-2 sm:py-3 leading-tight">Unit &amp; Jenis Pendingin</th>
+                                        <th class="border border-slate-400 w-[13%] px-1 sm:px-3 py-2 sm:py-3 text-center">Suhu</th>
+                                        <th class="border border-slate-400 w-[13%] px-1 sm:px-3 py-2 sm:py-3 text-center">Foto</th>
+                                    </tr>
+                                </thead>
+                                <tbody id="tbody-riwayat" class="text-[10px] sm:text-xs">
+                                    <tr>
+                                        <td colspan="6" class="border border-slate-300 text-center py-8 text-slate-400">Memuat riwayat input suhu...</td>
+                                    </tr>
+                                </tbody>
+                            </table>
+                            <div id="pagination-riwayat" class="hidden"></div>
+                        </div>
+                    </div>
+                </section>
+
+            </main>
+
+            <footer class="bg-white border-t border-slate-200 py-3.5 px-4 text-center text-[11px] text-slate-400">
+                Petugas Input Suhu Pendingin &bull; UPTD RPH dan Pasar Hewan
+            </footer>
+        </div>
+    </div>
+
+    <!-- MODAL NOTIFIKASI ANIMASI DATA TERKIRIM -->
+    <div id="modal-notif-terkirim" onclick="tutupNotifTerkirim()" class="fixed inset-0 z-[80] hidden flex items-center justify-center p-4 bg-slate-950/55 backdrop-blur-[2px]">
+        <div id="card-notif-terkirim" onclick="event.stopPropagation()" class="relative w-full max-w-sm bg-white rounded-3xl shadow-2xl border border-emerald-200 overflow-hidden text-center">
+            <div class="p-6 sm:p-7 space-y-4">
+                <div class="relative w-20 h-20 mx-auto flex items-center justify-center">
+                    <span class="anim-pulse-ring absolute inset-0 rounded-full bg-emerald-400/40"></span>
+                    <div class="relative w-20 h-20 rounded-full bg-emerald-50 flex items-center justify-center shadow-inner">
+                        <svg class="w-14 h-14" viewBox="0 0 52 52" fill="none">
+                            <circle id="svg-notif-circle" class="svg-check-circle" cx="26" cy="26" r="24" stroke="#10b981" stroke-width="3.5" stroke-linecap="round" />
+                            <path id="svg-notif-check" class="svg-check-mark" d="M15 26.5L22.5 34L37.5 18.5" stroke="#059669" stroke-width="4" stroke-linecap="round" stroke-linejoin="round" />
+                        </svg>
+                    </div>
+                </div>
+
+                <div>
+                    <span class="inline-block text-[10px] font-black uppercase tracking-wider px-2.5 py-0.5 rounded-full bg-emerald-100 text-emerald-700 border border-emerald-200">
+                        Sukses Tersimpan
+                    </span>
+                    <h3 class="text-lg font-black text-slate-900 mt-2">Data Suhu Terkirim!</h3>
+                    <p id="notif-terkirim-detail" class="text-xs text-slate-600 font-medium mt-1 leading-relaxed">
+                        Laporan suhu dan foto bukti berhasil disimpan ke sistem.
+                    </p>
+                </div>
+
+                <div class="flex items-center gap-2 pt-1">
+                    <button type="button" onclick="tutupNotifTerkirim(); pilihMenu('riwayat');"
+                        class="flex-1 bg-sky-700 hover:bg-sky-800 text-white text-xs font-bold py-2.5 px-3 rounded-xl transition-colors cursor-pointer">
+                        <i class="fa-solid fa-clock-rotate-left mr-1"></i>Lihat Riwayat
+                    </button>
+                    <button type="button" onclick="tutupNotifTerkirim()"
+                        class="flex-1 bg-emerald-600 hover:bg-emerald-700 text-white text-xs font-bold py-2.5 px-3 rounded-xl transition-colors cursor-pointer">
+                        <i class="fa-solid fa-check mr-1"></i>Oke
+                    </button>
+                </div>
+            </div>
+
+            <div class="h-1.5 w-full bg-slate-100">
+                <div id="notif-progress-bar" class="h-full bg-emerald-500 anim-progress-bar"></div>
+            </div>
+        </div>
+    </div>
+
+    <!-- MODAL POP-UP PREVIEW AVATAR FOTO -->
+    <div id="modal-popup-foto" onclick="tutupPopupFoto()" class="fixed inset-0 bg-black/80 backdrop-blur-[1px] z-[70] hidden flex items-center justify-center p-4">
+        <div onclick="event.stopPropagation()" class="relative max-w-lg w-full bg-white rounded-2xl overflow-hidden shadow-2xl border border-slate-200 p-2.5">
+            <button type="button" onclick="tutupPopupFoto()" title="Tutup"
+                class="absolute top-4 right-4 w-9 h-9 bg-black/50 hover:bg-black/75 text-white rounded-full flex items-center justify-center transition-colors cursor-pointer z-10">
+                <i class="fa-solid fa-xmark"></i>
+            </button>
+            <img id="popup-img" src="" alt="Foto Bukti Pemeriksaan Suhu"
+                class="w-full h-auto max-h-[72vh] object-contain rounded-xl bg-slate-100">
+            <div class="p-3 text-center">
+                <p id="popup-judul" class="text-sm font-bold text-slate-800"></p>
+                <p id="popup-subinfo" class="text-xs text-slate-500 mt-0.5"></p>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        // ==================== KONFIGURASI FIREBASE (SAMA DENGAN ADMIN) ====================
+        const firebaseConfig = {
+            apiKey: "AIzaSyBM4CICW2Oce4GNRKYMIeAB5rfWGSrnaH4",
+            authDomain: "smart-pagar-nusa.firebaseapp.com",
+            databaseURL: "https://smart-pagar-nusa-default-rtdb.asia-southeast1.firebasedatabase.app",
+            projectId: "smart-pagar-nusa",
+            storageBucket: "smart-pagar-nusa.firebasestorage.app",
+            messagingSenderId: "392604519486",
+            appId: "1:392604519486:web:65e674e764859a40d5956f"
+        };
+
+        let database = null;
+        try {
+            firebase.initializeApp(firebaseConfig);
+            database = firebase.database();
+        } catch (e) {
+            database = null;
+        }
+
+        const MAX_FILE_SIZE_BYTES = 10 * 1024 * 1024;
+        const MAX_FOTO_DIM = 720;
+        const TARGET_BASE64_LEN = 125000; // ~90 KB JPEG agar cepat dikirim & tidak membebani Firebase/HP
+        const ITEMS_PER_PAGE = 10;
+        const FIREBASE_LOG_LIMIT = 100;
+
+        const LOCAL_KEY_UNITS = "rph_suhu_units_v2";
+        const LOCAL_KEY_LOGS = "rph_suhu_logs_v2";
+        const LOCAL_KEY_PETUGAS = "rph_suhu_petugas_v2";
+        const LOCAL_KEY_SETTINGS = "rph_suhu_settings_v2";
+        const SESSION_KEY_UNIT = "rph_petugas_login_unit";
+
+        const CHART_PALETTE = [
+            { hex: "#0284c7", dot: "bg-sky-600", badge: "bg-sky-50 text-sky-800 border-sky-200" },
+            { hex: "#059669", dot: "bg-emerald-600", badge: "bg-emerald-50 text-emerald-800 border-emerald-200" },
+            { hex: "#7c3aed", dot: "bg-violet-600", badge: "bg-violet-50 text-violet-800 border-violet-200" },
+            { hex: "#d97706", dot: "bg-amber-600", badge: "bg-amber-50 text-amber-800 border-amber-200" },
+            { hex: "#e11d48", dot: "bg-rose-600", badge: "bg-rose-50 text-rose-800 border-rose-200" },
+            { hex: "#0891b2", dot: "bg-cyan-600", badge: "bg-cyan-50 text-cyan-800 border-cyan-200" }
+        ];
+
+        let dataUnits = [];
+        let dataPetugas = [];
+        let dataLogs = [];
+        let unitLoginAktif = "";
+        let riwayatPage = 1;
+        let menuAktif = "input-suhu";
+        let fotoTerpilihDataUrl = "";
+        let fotoTerpilihNama = "";
+        let sedangKompresFoto = false;
+        let notifTimer = null;
+
+        // ==================== SIDEBAR BUKA & TUTUP ====================
+        let lastIsDesktop = window.innerWidth >= 1024;
+        let sidebarTerbuka = lastIsDesktop;
+
+        function setSidebar(buka) {
+            sidebarTerbuka = buka;
+            terapkanStateSidebar();
+        }
+
+        function toggleSidebar() {
+            sidebarTerbuka = !sidebarTerbuka;
+            terapkanStateSidebar();
+        }
+
+        function terapkanStateSidebar() {
+            const sidebar = document.getElementById("app-sidebar");
+            const overlay = document.getElementById("sidebar-overlay");
+            const isDesktop = window.innerWidth >= 1024;
+
+            if (isDesktop) {
+                overlay.classList.add("hidden");
+                sidebar.classList.remove("translate-x-0", "-translate-x-full");
+                if (sidebarTerbuka) {
+                    sidebar.classList.remove("lg:-ml-72", "lg:opacity-0", "lg:pointer-events-none");
+                    sidebar.classList.add("lg:ml-0", "lg:opacity-100");
+                } else {
+                    sidebar.classList.remove("lg:ml-0", "lg:opacity-100");
+                    sidebar.classList.add("lg:-ml-72", "lg:opacity-0", "lg:pointer-events-none");
+                }
+            } else {
+                sidebar.classList.remove("lg:-ml-72", "lg:opacity-0", "lg:pointer-events-none", "lg:ml-0", "lg:opacity-100");
+                if (sidebarTerbuka) {
+                    sidebar.classList.remove("-translate-x-full");
+                    sidebar.classList.add("translate-x-0");
+                    overlay.classList.remove("hidden");
+                } else {
+                    sidebar.classList.remove("translate-x-0");
+                    sidebar.classList.add("-translate-x-full");
+                    overlay.classList.add("hidden");
+                }
+            }
+        }
+
+        window.addEventListener("resize", () => {
+            const isDesktopNow = window.innerWidth >= 1024;
+            if (isDesktopNow !== lastIsDesktop) {
+                lastIsDesktop = isDesktopNow;
+                sidebarTerbuka = isDesktopNow;
+                terapkanStateSidebar();
+            }
+        });
+
+        function pilihMenu(menu) {
+            menuAktif = menu;
+            document.querySelectorAll(".sidebar-btn").forEach(btn => {
+                if (btn.dataset.menu === menu) {
+                    btn.classList.add("sidebar-link-active");
+                    btn.classList.remove("text-slate-300", "hover:bg-slate-800");
+                } else {
+                    btn.classList.remove("sidebar-link-active");
+                    btn.classList.add("text-slate-300", "hover:bg-slate-800");
+                }
+            });
+
+            document.querySelectorAll(".menu-section").forEach(el => el.classList.add("hidden"));
+            const target = document.getElementById("sec-" + menu);
+            if (target) target.classList.remove("hidden");
+
+            if (menu === "riwayat") {
+                renderTabelRiwayat();
+            } else if (menu === "diagram-grafik") {
+                renderDiagramGrafik();
+            }
+            if (window.innerWidth < 1024) {
+                setSidebar(false);
+            }
+            window.scrollTo({ top: 0, behavior: "smooth" });
+        }
+
+        // ==================== NOTIFIKASI ANIMASI DATA TERKIRIM ====================
+        function tampilkanNotifTerkirim(detailText) {
+            const modal = document.getElementById("modal-notif-terkirim");
+            const card = document.getElementById("card-notif-terkirim");
+            const detailEl = document.getElementById("notif-terkirim-detail");
+            const circle = document.getElementById("svg-notif-circle");
+            const check = document.getElementById("svg-notif-check");
+            const prog = document.getElementById("notif-progress-bar");
+            if (!modal || !card) return;
+
+            clearTimeout(notifTimer);
+            if (detailEl) detailEl.innerText = detailText || "Laporan suhu dan foto bukti telah tersimpan.";
+
+            card.classList.remove("anim-notif-in", "anim-notif-out");
+            circle.classList.remove("svg-check-circle");
+            check.classList.remove("svg-check-mark");
+            prog.classList.remove("anim-progress-bar");
+            void card.offsetWidth;
+
+            card.classList.add("anim-notif-in");
+            circle.classList.add("svg-check-circle");
+            check.classList.add("svg-check-mark");
+            prog.classList.add("anim-progress-bar");
+
+            modal.classList.remove("hidden");
+
+            notifTimer = setTimeout(() => {
+                tutupNotifTerkirim();
+            }, 3500);
+        }
+
+        function tutupNotifTerkirim() {
+            const modal = document.getElementById("modal-notif-terkirim");
+            const card = document.getElementById("card-notif-terkirim");
+            if (!modal || modal.classList.contains("hidden")) return;
+
+            clearTimeout(notifTimer);
+            card.classList.remove("anim-notif-in");
+            card.classList.add("anim-notif-out");
+
+            setTimeout(() => {
+                modal.classList.add("hidden");
+                card.classList.remove("anim-notif-out");
+            }, 220);
+        }
+
+        // ==================== DATA DEFAULT ====================
+        function getDefaultUnits() {
+            return [
+                { id: "unit_1", nama: "RPH", jenis: "Chiller", lokasi: "Area RPH", suhu_min: 0, suhu_max: 4, suhu_terkini: 2.3, kondisi: "Aktif" },
+                { id: "unit_2", nama: "RPH", jenis: "Freezer", lokasi: "Area RPH", suhu_min: -22, suhu_max: -16, suhu_terkini: -18.5, kondisi: "Aktif" },
+                { id: "unit_3", nama: "RPU", jenis: "Cold Storage", lokasi: "Area RPU", suhu_min: 2, suhu_max: 6, suhu_terkini: 3.2, kondisi: "Aktif" },
+                { id: "unit_4", nama: "RPU", jenis: "ABF", lokasi: "Area RPU", suhu_min: -25, suhu_max: -18, suhu_terkini: -20.8, kondisi: "Aktif" }
+            ];
+        }
+
+        function getDefaultPetugas() {
+            return [
+                { id: "ptg_1", nama: "Budi Santoso", unit: "RPH" },
+                { id: "ptg_2", nama: "Lukman", unit: "RPU" }
+            ];
+        }
+
+        // ==================== HELPER ====================
+        function esc(str) {
+            if (str === null || str === undefined) return "";
+            return String(str)
+                .replace(/&/g, "&amp;")
+                .replace(/</g, "&lt;")
+                .replace(/>/g, "&gt;")
+                .replace(/"/g, "&quot;")
+                .replace(/'/g, "&#39;");
+        }
+
+        function safeJsonAttr(val) {
+            return JSON.stringify(val || "")
+                .replace(/'/g, "\\u0027")
+                .replace(/</g, "\\u003c")
+                .replace(/>/g, "\\u003e");
+        }
+
+        function getUniqueUnitNames() {
+            const list = [];
+            const seen = new Set();
+            dataUnits.forEach(u => {
+                if (String(u.kondisi || "Aktif").toLowerCase() === "nonaktif") return;
+                const nama = String(u.nama || "").trim();
+                const key = nama.toLowerCase();
+                if (nama && !seen.has(key)) {
+                    seen.add(key);
+                    list.push(nama);
+                }
+            });
+            return list;
+        }
+
+        function getUnitPetugas(p) {
+            if (p.unit && String(p.unit).trim() !== "") return String(p.unit).trim();
+            if (p.unit_id) {
+                const u = dataUnits.find(x => x.id === p.unit_id);
+                if (u && u.nama) return String(u.nama).trim();
+            }
+            return "";
+        }
+
+        function getLogUnitName(item) {
+            if (item.unit_id) {
+                const found = dataUnits.find(u => u.id === item.unit_id);
+                if (found && found.nama) return String(found.nama).trim();
+            }
+            if (item.unit_petugas && String(item.unit_petugas).trim() !== "") {
+                return String(item.unit_petugas).trim();
+            }
+            return String(item.nama_unit || "").replace(/\s*\([^)]*\)\s*$/, "").trim();
+        }
+
+        function getLogJenisName(item) {
+            if (item.jenis_pendingin) return String(item.jenis_pendingin).trim();
+            if (item.jenis_ruangan) return String(item.jenis_ruangan).trim();
+            if (item.unit_id) {
+                const found = dataUnits.find(u => u.id === item.unit_id);
+                if (found && found.jenis) return String(found.jenis).trim();
+            }
+            return "";
+        }
+
+        function extractLogDateKey(waktuStr) {
+            if (!waktuStr) return "";
+            const s = String(waktuStr);
+            if (/^\d{4}-\d{2}-\d{2}/.test(s)) return s.slice(0, 10);
+            const dt = new Date(s);
+            if (isNaN(dt.getTime())) return "";
+            const pad = n => String(n).padStart(2, "0");
+            return `${dt.getFullYear()}-${pad(dt.getMonth() + 1)}-${pad(dt.getDate())}`;
+        }
+
+        function getNowDateTimeLocal() {
+            const d = new Date();
+            const pad = n => String(n).padStart(2, "0");
+            return `${d.getFullYear()}-${pad(d.getMonth() + 1)}-${pad(d.getDate())}T${pad(d.getHours())}:${pad(d.getMinutes())}`;
+        }
+
+        function formatWaktuIndo(waktuStr) {
+            if (!waktuStr) return "";
+            const dt = new Date(waktuStr);
+            if (isNaN(dt.getTime())) return esc(waktuStr);
+            return dt.toLocaleString("id-ID", {
+                day: "2-digit",
+                month: "short",
+                year: "numeric",
+                hour: "2-digit",
+                minute: "2-digit"
+            });
+        }
+
+        function formatTanggalJamSplit(waktuStr) {
+            if (!waktuStr) return { tgl: "", jam: "" };
+            const dt = new Date(waktuStr);
+            if (isNaN(dt.getTime())) return { tgl: esc(waktuStr), jam: "" };
+            const tgl = dt.toLocaleDateString("id-ID", { day: "2-digit", month: "short", year: "2-digit" });
+            const jam = dt.toLocaleTimeString("id-ID", { hour: "2-digit", minute: "2-digit" });
+            return { tgl, jam };
+        }
+
+        function formatSuhu(val) {
+            if (val === "" || val === null || val === undefined) return "-";
+            const num = Number(val);
+            if (isNaN(num)) return "-";
+            return `${num.toFixed(1)} °C`;
+        }
+
+        function evaluasiStatusSuhu(suhu, minVal, maxVal) {
+            const t = Number(suhu);
+            const min = Number(minVal);
+            const max = Number(maxVal);
+            if (isNaN(t) || isNaN(min) || isNaN(max)) {
+                return { status: "Normal", keterangan: "Suhu tercatat" };
+            }
+            if (t > max) {
+                return { status: "Kritis", keterangan: `Di atas batas (+${(t - max).toFixed(1)}°C)` };
+            }
+            if (t < min) {
+                return { status: "Kritis", keterangan: `Di bawah batas (-${(min - t).toFixed(1)}°C)` };
+            }
+            const rentang = Math.max(0.5, max - min);
+            const margin = Math.min(0.8, rentang * 0.15);
+            if (t >= max - margin || t <= min + margin) {
+                return { status: "Peringatan", keterangan: "Mendekati ambang batas" };
+            }
+            return { status: "Normal", keterangan: "Suhu dalam batas aman" };
+        }
+
+        // ==================== LOGIN PER UNIT ====================
+        function renderLoginUnits() {
+            const wrap = document.getElementById("login-unit-buttons");
+            if (!wrap) return;
+
+            const units = getUniqueUnitNames();
+            if (units.length === 0) {
+                wrap.innerHTML = `<p class="text-xs text-rose-600 font-semibold">Belum ada unit terdaftar pada Admin.</p>`;
+                return;
+            }
+
+            wrap.innerHTML = units.map(unitName => `
+                <button type="button" onclick='loginUnit(${safeJsonAttr(unitName)})'
+                    class="min-w-[120px] px-6 py-3.5 rounded-2xl bg-sky-700 hover:bg-sky-800 active:scale-[0.98] text-white font-black text-sm tracking-wide uppercase shadow-md shadow-sky-700/25 transition-all flex items-center justify-center gap-2 cursor-pointer">
+                    <i class="fa-solid fa-building text-cyan-200"></i>
+                    <span>${esc(unitName)}</span>
+                </button>
+            `).join("");
+        }
+
+        function loginUnit(unitName) {
+            if (!unitName) return;
+            unitLoginAktif = unitName;
+            try {
+                sessionStorage.setItem(SESSION_KEY_UNIT, unitName);
+            } catch (e) {}
+
+            document.getElementById("login-screen").classList.add("hidden");
+            document.getElementById("app-shell").classList.remove("hidden");
+            document.body.classList.remove("overflow-hidden");
+
+            document.getElementById("sidebar-unit-aktif").innerText = unitLoginAktif;
+            document.getElementById("form-subtitle-unit").innerText = `Input suhu pendingin khusus unit ${unitLoginAktif}`;
+
+            document.getElementById("alert-error").classList.add("hidden");
+            document.getElementById("alert-success").classList.add("hidden");
+            document.getElementById("form-petugas-suhu").reset();
+            hapusPilihanFoto();
+
+            isiSemuaDropdownTerdaftar();
+            riwayatPage = 1;
+            pilihMenu("input-suhu");
+        }
+
+        function logoutUnit() {
+            unitLoginAktif = "";
+            try {
+                sessionStorage.removeItem(SESSION_KEY_UNIT);
+            } catch (e) {}
+            document.getElementById("app-shell").classList.add("hidden");
+            document.getElementById("login-screen").classList.remove("hidden");
+            document.body.classList.add("overflow-hidden");
+            window.scrollTo(0, 0);
+            renderLoginUnits();
+        }
+
+        // ==================== JAM & TANGGAL REALTIME ====================
+        function updateWaktuRealtime() {
+            const now = new Date();
+            const elTgl = document.getElementById("realtime-tanggal");
+            const elJam = document.getElementById("realtime-jam");
+
+            const tglStr = now.toLocaleDateString("id-ID", {
+                weekday: "long",
+                day: "2-digit",
+                month: "long",
+                year: "numeric"
+            });
+            const jamStr = now.toLocaleTimeString("id-ID", {
+                hour: "2-digit",
+                minute: "2-digit",
+                second: "2-digit"
+            }) + " WIB";
+
+            if (elTgl) elTgl.innerText = tglStr;
+            if (elJam) elJam.innerText = jamStr;
+        }
+
+        // ==================== SINKRONISASI DATA TERDAFTAR (OPTIMAL & ANTI-LAG) ====================
+        function muatLokal() {
+            try {
+                const rawUnits = localStorage.getItem(LOCAL_KEY_UNITS);
+                const rawPetugas = localStorage.getItem(LOCAL_KEY_PETUGAS);
+                const rawLogs = localStorage.getItem(LOCAL_KEY_LOGS);
+                const rawSettings = localStorage.getItem(LOCAL_KEY_SETTINGS);
+
+                dataUnits = rawUnits ? (JSON.parse(rawUnits) || []) : getDefaultUnits();
+                dataPetugas = rawPetugas ? (JSON.parse(rawPetugas) || []) : getDefaultPetugas();
+                dataLogs = rawLogs ? (JSON.parse(rawLogs) || []) : [];
+
+                if (rawSettings) {
+                    const st = JSON.parse(rawSettings) || {};
+                    if (st.logo) {
+                        document.getElementById("sidebar-logo").src = st.logo;
+                        document.getElementById("login-logo").src = st.logo;
+                    }
+                }
+            } catch (e) {
+                dataUnits = getDefaultUnits();
+                dataPetugas = getDefaultPetugas();
+                dataLogs = [];
+            }
+        }
+
+        function simpanLokal() {
+            try {
+                localStorage.setItem(LOCAL_KEY_UNITS, JSON.stringify(dataUnits));
+                localStorage.setItem(LOCAL_KEY_PETUGAS, JSON.stringify(dataPetugas));
+                // Simpan maks 30 log terbaru tanpa Base64 foto agar localStorage tidak penuh (limit 5MB) dan bebas lag
+                const logsRingan = dataLogs.slice(0, 30).map(({ foto, ...rest }) => rest);
+                localStorage.setItem(LOCAL_KEY_LOGS, JSON.stringify(logsRingan));
+            } catch (e) {}
+        }
+
+        function updateBadgeKoneksi(online) {
+            const el = document.getElementById("badge-koneksi");
+            const loginEl = document.getElementById("login-sync-status");
+            if (online) {
+                if (el) {
+                    el.className = "text-[10px] font-bold px-2.5 py-0.5 rounded-full bg-emerald-500/20 text-emerald-300 border border-emerald-400/30";
+                    el.innerHTML = `<i class="fa-solid fa-circle text-[7px] mr-1 animate-pulse"></i>Realtime Sync`;
+                }
+                if (loginEl) {
+                    loginEl.innerHTML = `<i class="fa-solid fa-circle text-[7px] text-emerald-500 mr-1.5"></i>Terhubung ke database Admin`;
+                }
+            } else {
+                if (el) {
+                    el.className = "text-[10px] font-bold px-2.5 py-0.5 rounded-full bg-amber-500/20 text-amber-300 border border-amber-400/30";
+                    el.innerHTML = `<i class="fa-solid fa-database text-[9px] mr-1"></i>Mode Lokal`;
+                }
+                if (loginEl) {
+                    loginEl.innerHTML = `<i class="fa-solid fa-database text-amber-500 mr-1.5"></i>Mode Penyimpanan Lokal`;
+                }
+            }
+        }
+
+        function aktifkanSync() {
+            muatLokal();
+            renderLoginUnits();
+
+            try {
+                const savedUnit = sessionStorage.getItem(SESSION_KEY_UNIT);
+                const validUnits = getUniqueUnitNames();
+                if (savedUnit && validUnits.some(u => u.toLowerCase() === savedUnit.toLowerCase())) {
+                    const matched = validUnits.find(u => u.toLowerCase() === savedUnit.toLowerCase());
+                    loginUnit(matched);
+                }
+            } catch (e) {}
+
+            if (!database) {
+                updateBadgeKoneksi(false);
+                return;
+            }
+
+            database.ref("pantauan_suhu_pendingin/petugas").on("value", snap => {
+                updateBadgeKoneksi(true);
+                const val = snap.val();
+                if (val) {
+                    dataPetugas = Object.entries(val).map(([k, v]) => ({ ...v, id: v.id || k }));
+                    simpanLokal();
+                    if (unitLoginAktif) isiSemuaDropdownTerdaftar();
+                }
+            }, () => updateBadgeKoneksi(false));
+
+            database.ref("pantauan_suhu_pendingin/units").on("value", snap => {
+                updateBadgeKoneksi(true);
+                const val = snap.val();
+                if (val) {
+                    dataUnits = Object.entries(val).map(([k, v]) => ({ ...v, id: v.id || k }));
+                    simpanLokal();
+                    renderLoginUnits();
+                    if (unitLoginAktif) {
+                        isiSemuaDropdownTerdaftar();
+                        if (menuAktif === "diagram-grafik") renderDiagramGrafik();
+                        if (menuAktif === "riwayat") renderTabelRiwayat();
+                    }
+                }
+            }, () => updateBadgeKoneksi(false));
+
+            // Batasi 100 data log terbaru agar HP tidak mendownload puluhan MB foto lama sekaligus
+            database.ref("pantauan_suhu_pendingin/logs")
+                .orderByChild("waktu")
+                .limitToLast(FIREBASE_LOG_LIMIT)
+                .on("value", snap => {
+                    const val = snap.val();
+                    if (val) {
+                        dataLogs = Object.entries(val).map(([k, v]) => ({ ...v, id: v.id || k }));
+                        dataLogs.sort((a, b) => new Date(b.waktu || 0) - new Date(a.waktu || 0));
+                    } else {
+                        dataLogs = [];
+                    }
+                    simpanLokal();
+                    if (unitLoginAktif) {
+                        // Render hanya pada menu yang sedang dibuka agar main thread tidak lag
+                        if (menuAktif === "diagram-grafik") renderDiagramGrafik();
+                        if (menuAktif === "riwayat") renderTabelRiwayat();
+                    }
+                }, () => {});
+
+            database.ref("pantauan_suhu_pendingin/settings").on("value", snap => {
+                const val = snap.val();
+                if (val && val.logo) {
+                    document.getElementById("sidebar-logo").src = val.logo;
+                    document.getElementById("login-logo").src = val.logo;
+                }
+            }, () => {});
+        }
+
+        // ==================== POPULATE DROPDOWN SESUAI UNIT LOGIN ====================
+        function isiSemuaDropdownTerdaftar() {
+            const unitKey = String(unitLoginAktif || "").trim().toLowerCase();
+
+            const selPetugas = document.getElementById("inp-nama-petugas");
+            const prevPetugas = selPetugas.value;
+            const petugasUnit = dataPetugas.filter(p => {
+                const isAktif = String(p.status || "Aktif").toLowerCase() === "aktif";
+                const uPetugas = getUnitPetugas(p).toLowerCase();
+                return isAktif && (!unitKey || uPetugas === unitKey);
+            });
+
+            selPetugas.innerHTML = `<option value="">-- Pilih Nama Petugas --</option>` +
+                petugasUnit.map(p => `<option value="${esc(p.id)}">${esc(p.nama)}</option>`).join("");
+
+            if (prevPetugas && petugasUnit.some(p => p.id === prevPetugas)) {
+                selPetugas.value = prevPetugas;
+            }
+
+            const selUnitPetugas = document.getElementById("inp-unit-petugas");
+            const uniqueUnits = getUniqueUnitNames();
+            const matchingUnits = unitKey
+                ? uniqueUnits.filter(u => u.toLowerCase() === unitKey)
+                : uniqueUnits;
+
+            if (matchingUnits.length > 0) {
+                selUnitPetugas.innerHTML = matchingUnits.map(u => `<option value="${esc(u)}">${esc(u)}</option>`).join("");
+                selUnitPetugas.value = matchingUnits[0];
+            } else {
+                selUnitPetugas.innerHTML = `<option value="">-- Belum ada unit terdaftar --</option>`;
+            }
+
+            const selRuangan = document.getElementById("inp-jenis-ruangan");
+            const prevRuangan = selRuangan.value;
+            const unitPendinginAktif = dataUnits.filter(u => {
+                const isAktif = String(u.kondisi || "Aktif").toLowerCase() !== "nonaktif";
+                const uNama = String(u.nama || "").trim().toLowerCase();
+                return isAktif && (!unitKey || uNama === unitKey);
+            });
+
+            selRuangan.innerHTML = `<option value="">-- Pilih Jenis Pendingin --</option>` +
+                unitPendinginAktif.map(u =>
+                    `<option value="${esc(u.id)}">${esc(u.jenis || "Pendingin")}</option>`
+                ).join("");
+
+            if (prevRuangan && unitPendinginAktif.some(u => u.id === prevRuangan)) {
+                selRuangan.value = prevRuangan;
+            }
+        }
+
+        // ==================== UPLOAD & KOMPRESI FOTO CEPAT TANPA LAG ====================
+        function hitungDimensiTarget(srcW, srcH, maxDim) {
+            let w = srcW;
+            let h = srcH;
+            if (w > maxDim || h > maxDim) {
+                if (w > h) {
+                    h = Math.max(1, Math.round((h * maxDim) / w));
+                    w = maxDim;
+                } else {
+                    w = Math.max(1, Math.round((w * maxDim) / h));
+                    h = maxDim;
+                }
+            }
+            return { w, h };
+        }
+
+        async function muatGambarTerResize(file, maxDim) {
+            // Prioritas 1: createImageBitmap dengan resize bawaan browser (paling cepat & hemat RAM di Android/Chrome)
+            if (typeof createImageBitmap === "function") {
+                try {
+                    const infoBitmap = await createImageBitmap(file);
+                    const { w, h } = hitungDimensiTarget(infoBitmap.width, infoBitmap.height, maxDim);
+                    infoBitmap.close();
+
+                    try {
+                        const resizedBitmap = await createImageBitmap(file, {
+                            resizeWidth: w,
+                            resizeHeight: h,
+                            resizeQuality: "medium"
+                        });
+                        return { source: resizedBitmap, w, h, cleanup: () => resizedBitmap.close() };
+                    } catch (optErr) {
+                        const fallbackBitmap = await createImageBitmap(file);
+                        return { source: fallbackBitmap, w, h, cleanup: () => fallbackBitmap.close() };
+                    }
+                } catch (bmErr) {
+                    // Lanjut ke fallback ObjectURL
+                }
+            }
+
+            // Fallback: URL.createObjectURL (tetap jauh lebih hemat RAM dibanding FileReader.readAsDataURL)
+            const objectUrl = URL.createObjectURL(file);
+            try {
+                const img = await new Promise((resolve, reject) => {
+                    const el = new Image();
+                    el.onload = () => resolve(el);
+                    el.onerror = reject;
+                    el.src = objectUrl;
+                });
+                const { w, h } = hitungDimensiTarget(img.naturalWidth || img.width, img.naturalHeight || img.height, maxDim);
+                return { source: img, w, h, cleanup: () => URL.revokeObjectURL(objectUrl) };
+            } catch (imgErr) {
+                URL.revokeObjectURL(objectUrl);
+                throw imgErr;
+            }
+        }
+
+        async function validasiDanPreviewFoto(event) {
+            const input = event.target;
+            const file = input.files && input.files[0];
+            const errBox = document.getElementById("alert-error");
+            const errText = document.getElementById("alert-error-text");
+            const btnKirim = document.getElementById("btn-kirim-suhu");
+            const spinnerEl = document.getElementById("spinner-preview-foto");
+
+            errBox.classList.add("hidden");
+            if (!file) return;
+
+            const isFromNativeCam = input.id === "inp-foto-kamera-native";
+            const ext = (file.name.split(".").pop() || "").toLowerCase();
+            const allowedExt = ["jpg", "jpeg", "png"];
+            const allowedMime = ["image/jpeg", "image/png"];
+            const isImageFile = file.type && file.type.startsWith("image/");
+
+            if (!isFromNativeCam && !allowedExt.includes(ext) && !allowedMime.includes(file.type)) {
+                input.value = "";
+                hapusPilihanFoto();
+                errText.innerText = "Format foto harus JPG, JPEG, atau PNG.";
+                errBox.classList.remove("hidden");
+                return;
+            }
+            if (isFromNativeCam && !isImageFile && !["jpg", "jpeg", "png", "webp", "heic"].includes(ext)) {
+                input.value = "";
+                hapusPilihanFoto();
+                errText.innerText = "File yang diambil bukan format gambar.";
+                errBox.classList.remove("hidden");
+                return;
+            }
+
+            if (file.size > MAX_FILE_SIZE_BYTES) {
+                const mb = (file.size / (1024 * 1024)).toFixed(2);
+                input.value = "";
+                hapusPilihanFoto();
+                errText.innerText = `Ukuran foto (${mb} MB) melebihi batas maksimal 10 MB.`;
+                errBox.classList.remove("hidden");
+                return;
+            }
+
+            sedangKompresFoto = true;
+            fotoTerpilihDataUrl = "";
+            if (btnKirim) btnKirim.disabled = true;
+            document.getElementById("wrap-preview-foto").classList.remove("hidden");
+            if (spinnerEl) spinnerEl.classList.remove("hidden");
+            document.getElementById("nama-file-foto").innerText = file.name || "Foto_Kamera.jpg";
+            document.getElementById("ukuran-file-foto").innerText = "Mengoptimalkan foto agar cepat dikirim...";
+
+            let loaded = null;
+            try {
+                // Beri kesempatan 1 frame agar UI spinner tampil sebelum draw canvas
+                await new Promise(r => requestAnimationFrame(r));
+
+                loaded = await muatGambarTerResize(file, MAX_FOTO_DIM);
+
+                const canvas = document.createElement("canvas");
+                canvas.width = loaded.w;
+                canvas.height = loaded.h;
+                const ctx = canvas.getContext("2d", { alpha: false });
+                ctx.fillStyle = "#ffffff";
+                ctx.fillRect(0, 0, loaded.w, loaded.h);
+                ctx.drawImage(loaded.source, 0, 0, loaded.w, loaded.h);
+
+                loaded.cleanup();
+                loaded = null;
+
+                // Selalu konversi ke JPEG agar PNG besar tidak membengkak menjadi 1-2 MB
+                let quality = 0.72;
+                let dataUrl = canvas.toDataURL("image/jpeg", quality);
+                while (dataUrl.length > TARGET_BASE64_LEN && quality > 0.45) {
+                    quality -= 0.1;
+                    dataUrl = canvas.toDataURL("image/jpeg", quality);
+                }
+
+                // Bebaskan buffer canvas segera
+                canvas.width = 0;
+                canvas.height = 0;
+
+                fotoTerpilihDataUrl = dataUrl;
+                fotoTerpilihNama = file.name || "Foto_Kamera.jpg";
+
+                const sizeAsli = file.size >= 1024 * 1024
+                    ? `${(file.size / (1024 * 1024)).toFixed(2)} MB`
+                    : `${Math.round(file.size / 1024)} KB`;
+                const kbHasil = Math.round((dataUrl.length * 0.75) / 1024);
+
+                document.getElementById("img-preview-foto").src = fotoTerpilihDataUrl;
+                document.getElementById("nama-file-foto").innerText = fotoTerpilihNama;
+                document.getElementById("ukuran-file-foto").innerText = `Asli: ${sizeAsli} → Dioptimalkan: ${kbHasil} KB (Siap dikirim)`;
+            } catch (err) {
+                if (loaded && typeof loaded.cleanup === "function") loaded.cleanup();
+                hapusPilihanFoto();
+                errText.innerText = "File gambar tidak dapat dibaca.";
+                errBox.classList.remove("hidden");
+            } finally {
+                sedangKompresFoto = false;
+                if (spinnerEl) spinnerEl.classList.add("hidden");
+                if (btnKirim) btnKirim.disabled = false;
+            }
+        }
+
+        function hapusPilihanFoto() {
+            fotoTerpilihDataUrl = "";
+            fotoTerpilihNama = "";
+            const input = document.getElementById("inp-foto");
+            const inputCam = document.getElementById("inp-foto-kamera-native");
+            const spinnerEl = document.getElementById("spinner-preview-foto");
+            if (input) input.value = "";
+            if (inputCam) inputCam.value = "";
+            if (spinnerEl) spinnerEl.classList.add("hidden");
+            document.getElementById("wrap-preview-foto").classList.add("hidden");
+            document.getElementById("img-preview-foto").src = "";
+        }
+
+        // ==================== SIMPAN DATA INPUT SUHU PETUGAS ====================
+        async function simpanInputPetugas(event) {
+            event.preventDefault();
+
+            if (sedangKompresFoto) {
+                alert("Mohon tunggu sebentar, foto sedang dioptimalkan.");
+                return;
+            }
+
+            const errBox = document.getElementById("alert-error");
+            const errText = document.getElementById("alert-error-text");
+            const okBox = document.getElementById("alert-success");
+            const okText = document.getElementById("alert-success-text");
+            const btn = document.getElementById("btn-kirim-suhu");
+
+            errBox.classList.add("hidden");
+            okBox.classList.add("hidden");
+
+            const ptgId = document.getElementById("inp-nama-petugas").value;
+            const unitDipilih = document.getElementById("inp-unit-petugas").value;
+            const unitId = document.getElementById("inp-jenis-ruangan").value;
+            const suhuStr = document.getElementById("inp-suhu").value;
+            const catatanUser = document.getElementById("inp-catatan").value.trim();
+
+            const ptg = dataPetugas.find(p => p.id === ptgId);
+            const unit = dataUnits.find(u => u.id === unitId);
+
+            if (!ptg || !unitDipilih || !unit || suhuStr === "") {
+                errText.innerText = "Mohon lengkapi Nama Petugas, Unit, Jenis Pendingin, dan Suhu Terukur.";
+                errBox.classList.remove("hidden");
+                return;
+            }
+
+            if (!fotoTerpilihDataUrl) {
+                errText.innerText = "Mohon ambil foto lewat Kamera HP atau pilih file foto bukti.";
+                errBox.classList.remove("hidden");
+                return;
+            }
+
+            const suhu = parseFloat(suhuStr);
+            const ev = evaluasiStatusSuhu(suhu, unit.suhu_min, unit.suhu_max);
+            const waktuSekarang = getNowDateTimeLocal();
+            const logId = "log_" + Date.now();
+            const jenisPendingin = unit.jenis || "Pendingin";
+
+            const catatanLengkap = catatanUser || `${unitDipilih} • ${jenisPendingin}`;
+
+            const logBaru = {
+                id: logId,
+                unit_id: unit.id,
+                nama_unit: unit.nama,
+                jenis_pendingin: jenisPendingin,
+                jenis_ruangan: jenisPendingin,
+                lokasi: unit.lokasi || "",
+                suhu: suhu,
+                suhu_min: unit.suhu_min,
+                suhu_max: unit.suhu_max,
+                status: ev.status,
+                waktu: waktuSekarang,
+                petugas_id: ptg.id,
+                petugas: ptg.nama,
+                unit_petugas: unitDipilih,
+                catatan: catatanLengkap,
+                foto: fotoTerpilihDataUrl,
+                foto_nama: fotoTerpilihNama
+            };
+
+            btn.disabled = true;
+            btn.innerHTML = `<i class="fa-solid fa-spinner fa-spin"></i> <span>Mengirim Data...</span>`;
+
+            try {
+                dataLogs.unshift(logBaru);
+                unit.suhu_terkini = suhu;
+                unit.updated_at = waktuSekarang;
+                unit.petugas_terakhir = ptg.nama;
+                simpanLokal();
+
+                if (database) {
+                    await Promise.all([
+                        database.ref("pantauan_suhu_pendingin/logs/" + logId).set(logBaru),
+                        database.ref("pantauan_suhu_pendingin/units/" + unit.id).set(unit)
+                    ]);
+                }
+
+                const ringkasan = `${ptg.nama} • ${unitDipilih} (${jenisPendingin}): ${suhu.toFixed(1)} °C pada ${formatWaktuIndo(waktuSekarang)}.`;
+                okText.innerText = ringkasan;
+                okBox.classList.remove("hidden");
+
+                document.getElementById("inp-suhu").value = "";
+                document.getElementById("inp-catatan").value = "";
+                hapusPilihanFoto();
+                riwayatPage = 1;
+
+                if (menuAktif === "diagram-grafik") renderDiagramGrafik();
+                if (menuAktif === "riwayat") renderTabelRiwayat();
+
+                tampilkanNotifTerkirim(ringkasan);
+            } catch (err) {
+                errText.innerText = "Gagal mengirim ke server: " + err.message;
+                errBox.classList.remove("hidden");
+            } finally {
+                btn.disabled = false;
+                btn.innerHTML = `<i class="fa-solid fa-paper-plane"></i> <span>SIMPAN &amp; KIRIM DATA SUHU</span>`;
+            }
+        }
+
+        // ==================== MENU DIAGRAM GRAFIK (KHUSUS UNIT MASING-MASING) ====================
+        function resetFilterTanggalGrafik() {
+            const inp = document.getElementById("filter-grafik-tanggal");
+            if (inp) inp.value = "";
+            renderDiagramGrafik();
+        }
+
+        function buatSvgDiagramGrafik(logsUnit, lineColor, unitNama, jenisNama) {
+            const recentLogs = logsUnit.slice(-12);
+            if (recentLogs.length === 0) {
+                return `<div class="py-10 text-center text-xs text-slate-400">Belum ada rekaman suhu untuk ${esc(unitNama)} - ${esc(jenisNama)}.</div>`;
+            }
+
+            const W = 560;
+            const H = 220;
+            const padL = 46;
+            const padR = 22;
+            const padT = 28;
+            const padB = 38;
+            const plotW = W - padL - padR;
+            const plotH = H - padT - padB;
+
+            const suhuVals = recentLogs.map(l => Number(l.suhu));
+            const minAll = Math.min(...suhuVals) - 2;
+            const maxAll = Math.max(...suhuVals) + 2;
+            const range = Math.max(1, maxAll - minAll);
+
+            const toX = (idx) => recentLogs.length === 1
+                ? padL + plotW / 2
+                : padL + (idx / (recentLogs.length - 1)) * plotW;
+            const toY = (val) => padT + ((maxAll - val) / range) * plotH;
+
+            const points = recentLogs.map((l, idx) => ({
+                x: toX(idx),
+                y: toY(Number(l.suhu)),
+                suhu: Number(l.suhu),
+                waktu: l.waktu
+            }));
+
+            const polylinePoints = points.map(p => `${p.x.toFixed(1)},${p.y.toFixed(1)}`).join(" ");
+
+            let gridLines = "";
+            for (let i = 0; i <= 4; i++) {
+                const v = minAll + (range * i) / 4;
+                const y = toY(v);
+                gridLines += `
+                    <line x1="${padL}" y1="${y.toFixed(1)}" x2="${W - padR}" y2="${y.toFixed(1)}" stroke="#e2e8f0" stroke-dasharray="3,3" />
+                    <text x="${padL - 7}" y="${(y + 3.5).toFixed(1)}" text-anchor="end" font-size="9.5" fill="#64748b">${v.toFixed(1)}°</text>
+                `;
+            }
+
+            const dotsHtml = points.map(p => {
+                const dt = new Date(p.waktu);
+                const lbl = isNaN(dt.getTime()) ? "-" : dt.toLocaleTimeString("id-ID", { hour: "2-digit", minute: "2-digit" });
+                return `
+                    <g>
+                        <circle cx="${p.x.toFixed(1)}" cy="${p.y.toFixed(1)}" r="4.5" fill="${lineColor}" stroke="#ffffff" stroke-width="2" />
+                        <text x="${p.x.toFixed(1)}" y="${(p.y - 9).toFixed(1)}" text-anchor="middle" font-size="9.5" font-weight="700" fill="${lineColor}">
+                            ${p.suhu.toFixed(1)}°
+                        </text>
+                        <text x="${p.x.toFixed(1)}" y="${H - 10}" text-anchor="middle" font-size="9" fill="#64748b">
+                            ${esc(lbl)}
+                        </text>
+                    </g>
+                `;
+            }).join("");
+
+            return `
+                <svg viewBox="0 0 ${W} ${H}" class="w-full h-auto select-none">
+                    ${gridLines}
+                    <polyline fill="none" stroke="${lineColor}" stroke-width="2.6" stroke-linejoin="round" stroke-linecap="round" points="${polylinePoints}" />
+                    ${dotsHtml}
+                </svg>
+            `;
+        }
+
+        function renderDiagramGrafik() {
+            const container = document.getElementById("container-diagram-grafik");
+            const unitTitleEl = document.getElementById("grafik-nama-unit");
+            const countEl = document.getElementById("grafik-count-info");
+            if (!container) return;
+
+            const unitKey = String(unitLoginAktif || "").trim().toLowerCase();
+            const tglFilter = document.getElementById("filter-grafik-tanggal")?.value || "";
+
+            if (unitTitleEl) unitTitleEl.innerText = unitLoginAktif || "-";
+
+            const unitPendinginList = dataUnits.filter(u =>
+                String(u.kondisi || "Aktif").toLowerCase() !== "nonaktif" &&
+                String(u.nama || "").trim().toLowerCase() === unitKey
+            );
+
+            if (countEl) {
+                countEl.innerText = `Menampilkan ${unitPendinginList.length} jenis pendingin khusus unit ${unitLoginAktif || "-"}`;
+            }
+
+            if (unitPendinginList.length === 0) {
+                container.innerHTML = `
+                    <div class="col-span-full py-10 text-center text-xs text-slate-400">
+                        Belum ada jenis pendingin terdaftar untuk unit ${esc(unitLoginAktif)}.
+                    </div>
+                `;
+                return;
+            }
+
+            container.innerHTML = unitPendinginList.map((u, idx) => {
+                const pal = CHART_PALETTE[idx % CHART_PALETTE.length];
+                const uNama = String(u.nama || "").trim();
+                const uJenis = String(u.jenis || "Pendingin").trim();
+                const uJenisKey = uJenis.toLowerCase();
+
+                const logsJenis = dataLogs
+                    .filter(l => {
+                        const validSuhu = l.suhu !== null && l.suhu !== "" && !isNaN(Number(l.suhu));
+                        if (!validSuhu) return false;
+                        if (getLogUnitName(l).toLowerCase() !== unitKey) return false;
+                        if (tglFilter && extractLogDateKey(l.waktu) !== tglFilter) return false;
+                        if (l.unit_id && l.unit_id === u.id) return true;
+                        return getLogJenisName(l).toLowerCase() === uJenisKey;
+                    })
+                    .sort((a, b) => new Date(a.waktu || 0) - new Date(b.waktu || 0));
+
+                let suhuTerakhir = null;
+                let suhuTerendah = null;
+                let suhuTertinggi = null;
+
+                if (logsJenis.length > 0) {
+                    const nums = logsJenis.map(l => Number(l.suhu));
+                    suhuTerakhir = Number(logsJenis[logsJenis.length - 1].suhu);
+                    suhuTerendah = Math.min(...nums);
+                    suhuTertinggi = Math.max(...nums);
+                } else if (!tglFilter && u.suhu_terkini !== null && u.suhu_terkini !== "" && !isNaN(Number(u.suhu_terkini))) {
+                    suhuTerakhir = Number(u.suhu_terkini);
+                    suhuTerendah = Number(u.suhu_terkini);
+                    suhuTertinggi = Number(u.suhu_terkini);
+                }
+
+                return `
+                    <div class="rounded-2xl border border-slate-200 bg-white p-4 shadow-sm space-y-2.5 min-w-0">
+                        <div class="flex flex-wrap items-center justify-between gap-2 border-b border-slate-100 pb-2.5">
+                            <div class="flex items-center gap-2 min-w-0">
+                                <span class="w-3 h-3 rounded-full ${pal.dot} shrink-0"></span>
+                                <div class="min-w-0">
+                                    <p class="text-xs font-black text-slate-900 uppercase leading-tight truncate">${esc(uNama)}</p>
+                                    <p class="text-[11px] font-bold truncate" style="color:${pal.hex};">${esc(uJenis)}</p>
+                                </div>
+                            </div>
+                            <span class="inline-block text-[10px] px-2.5 py-0.5 rounded-full border font-bold ${pal.badge} shrink-0">
+                                Terakhir: ${suhuTerakhir !== null ? formatSuhu(suhuTerakhir) : "-"}
+                            </span>
+                        </div>
+
+                        <div class="w-full overflow-hidden">
+                            ${buatSvgDiagramGrafik(logsJenis, pal.hex, uNama, uJenis)}
+                        </div>
+
+                        <div class="flex flex-wrap items-center justify-between gap-2 text-[11px] text-slate-600 pt-1.5 border-t border-slate-100">
+                            <span>Suhu Terendah: <b class="text-sky-700">${suhuTerendah !== null ? formatSuhu(suhuTerendah) : "-"}</b></span>
+                            <span>Suhu Tertinggi: <b class="text-rose-600">${suhuTertinggi !== null ? formatSuhu(suhuTertinggi) : "-"}</b></span>
+                        </div>
+                    </div>
+                `;
+            }).join("");
+        }
+
+        // ==================== TABEL RIWAYAT KHUSUS UNIT LOGIN ====================
+        function getFilteredRiwayat() {
+            const tglFilter = document.getElementById("filter-riwayat-tanggal")?.value || "";
+            const kueri = (document.getElementById("cari-riwayat")?.value || "").toLowerCase();
+            const unitKey = String(unitLoginAktif || "").trim().toLowerCase();
+
+            return dataLogs.filter(item => {
+                const logUnit = getLogUnitName(item).toLowerCase();
+                const matchLoginUnit = !unitKey || logUnit === unitKey;
+                const matchTgl = !tglFilter || String(item.waktu || "").startsWith(tglFilter);
+                const teks = `${item.petugas || ""} ${item.unit_petugas || ""} ${item.nama_unit || ""} ${item.jenis_pendingin || ""}`.toLowerCase();
+                return matchLoginUnit && matchTgl && teks.includes(kueri);
+            });
+        }
+
+        function resetPageDanRenderRiwayat() {
+            riwayatPage = 1;
+            renderTabelRiwayat();
+        }
+
+        function gantiHalamanRiwayat(page) {
+            riwayatPage = page;
+            renderTabelRiwayat();
+        }
+
+        function renderTabelRiwayat() {
+            const tbody = document.getElementById("tbody-riwayat");
+            const pagEl = document.getElementById("pagination-riwayat");
+            const countInfo = document.getElementById("riwayat-count-info");
+            if (!tbody) return;
+
+            const filtered = getFilteredRiwayat();
+            countInfo.innerText = `${filtered.length} catatan suhu unit ${unitLoginAktif || ""}`;
+
+            if (filtered.length === 0) {
+                tbody.innerHTML = `
+                    <tr>
+                        <td colspan="6" class="border border-slate-300 text-center py-8 text-slate-400">
+                            Belum ada riwayat pencatatan suhu untuk unit ${esc(unitLoginAktif)}.
+                        </td>
+                    </tr>
+                `;
+                pagEl.classList.add("hidden");
+                pagEl.innerHTML = "";
+                return;
+            }
+
+            const total = filtered.length;
+            const totalPages = Math.max(1, Math.ceil(total / ITEMS_PER_PAGE));
+            if (riwayatPage > totalPages) riwayatPage = totalPages;
+            if (riwayatPage < 1) riwayatPage = 1;
+
+            const startIdx = (riwayatPage - 1) * ITEMS_PER_PAGE;
+            const endIdx = Math.min(startIdx + ITEMS_PER_PAGE, total);
+            const paged = filtered.slice(startIdx, endIdx);
+
+            tbody.innerHTML = paged.map((item, idx) => {
+                const nomor = startIdx + idx + 1;
+                const unitObj = dataUnits.find(u => u.id === item.unit_id);
+                const unitNama = getLogUnitName(item) || (unitObj ? unitObj.nama : "");
+                const jenisPendingin = item.jenis_pendingin || (unitObj ? unitObj.jenis : "") || item.jenis_ruangan || "";
+                const waktuSplit = formatTanggalJamSplit(item.waktu);
+
+                const suhuCls = item.status === "Kritis" ? "text-rose-600" : (item.status === "Peringatan" ? "text-amber-600" : "text-sky-700");
+
+                const judulPopup = `${unitNama}${jenisPendingin ? ` (${jenisPendingin})` : ""}`;
+                const subinfoPopup = `${item.petugas || ""} • ${Number(item.suhu).toFixed(1)} °C • ${formatWaktuIndo(item.waktu)}`;
+
+                const avatarHtml = item.foto
+                    ? `<img src="${esc(item.foto)}" alt="Foto" loading="lazy" decoding="async"
+                            onclick='bukaPopupFoto(${safeJsonAttr(item.foto)}, ${safeJsonAttr(judulPopup)}, ${safeJsonAttr(subinfoPopup)})'
+                            title="Klik untuk memperbesar foto"
+                            class="w-7 h-7 sm:w-10 sm:h-10 rounded-full object-cover border-2 border-sky-200 hover:border-sky-500 hover:scale-110 transition-all cursor-pointer mx-auto bg-white shadow-sm">`
+                    : `<div title="Tidak ada foto"
+                            class="w-7 h-7 sm:w-10 sm:h-10 rounded-full bg-slate-100 border border-slate-300 flex items-center justify-center text-slate-400 mx-auto">
+                            <i class="fa-regular fa-image text-[10px] sm:text-xs"></i>
+                       </div>`;
+
+                return `
+                    <tr class="hover:bg-slate-50 transition-colors">
+                        <td class="border border-slate-300 px-1 sm:px-3 py-2 sm:py-3 text-center font-bold text-slate-600 break-words">${nomor}</td>
+                        <td class="border border-slate-300 px-1 sm:px-3.5 py-2 sm:py-3 font-medium text-slate-700 leading-tight break-words">
+                            <span class="block font-semibold text-slate-800">${esc(waktuSplit.tgl)}</span>
+                            <span class="block text-[9px] sm:text-[11px] text-slate-500">${esc(waktuSplit.jam)}</span>
+                        </td>
+                        <td class="border border-slate-300 px-1.5 sm:px-3.5 py-2 sm:py-3 font-bold text-slate-800 leading-tight break-words">${esc(item.petugas || "")}</td>
+                        <td class="border border-slate-300 px-1.5 sm:px-4 py-2 sm:py-3 leading-tight break-words">
+                            <p class="font-bold text-slate-900">${esc(unitNama)}</p>
+                            <p class="text-[9px] sm:text-[11px] font-semibold text-sky-700 mt-0.5">${esc(jenisPendingin)}</p>
+                        </td>
+                        <td class="border border-slate-300 px-1 sm:px-3 py-2 sm:py-3 text-center font-black ${suhuCls} leading-tight break-words">
+                            ${Number(item.suhu).toFixed(1)}<span class="text-[9px] sm:text-xs">°C</span>
+                        </td>
+                        <td class="border border-slate-300 px-1 sm:px-3 py-2 sm:py-3 text-center">${avatarHtml}</td>
+                    </tr>
+                `;
+            }).join("");
+
+            const pages = [];
+            if (totalPages <= 5) {
+                for (let i = 1; i <= totalPages; i++) pages.push(i);
+            } else {
+                pages.push(1);
+                if (riwayatPage > 3) pages.push("...");
+                for (let i = Math.max(2, riwayatPage - 1); i <= Math.min(totalPages - 1, riwayatPage + 1); i++) pages.push(i);
+                if (riwayatPage < totalPages - 2) pages.push("...");
+                pages.push(totalPages);
+            }
+
+            pagEl.className = "px-3 sm:px-4 py-3 border-t border-slate-200 bg-slate-50 flex flex-col sm:flex-row items-center justify-between gap-2 text-xs";
+            pagEl.innerHTML = `
+                <p class="text-[11px] text-slate-500 font-medium text-center sm:text-left">
+                    Menampilkan <b class="text-slate-700">${startIdx + 1}–${endIdx}</b> dari <b class="text-slate-700">${total}</b> catatan
+                    <span class="text-slate-400">&bull; Hal ${riwayatPage}/${totalPages}</span>
+                </p>
+                <div class="flex items-center gap-1 flex-wrap justify-center">
+                    <button type="button" onclick="gantiHalamanRiwayat(${riwayatPage - 1})" ${riwayatPage <= 1 ? "disabled" : ""}
+                        class="h-[30px] px-2.5 rounded-lg bg-white border border-slate-200 text-slate-600 font-bold hover:bg-slate-100 disabled:opacity-40 disabled:cursor-not-allowed cursor-pointer">
+                        <i class="fa-solid fa-chevron-left text-[10px]"></i>
+                    </button>
+                    ${pages.map(p => p === "..."
+                        ? `<span class="px-2 text-slate-400 select-none">...</span>`
+                        : `<button type="button" onclick="gantiHalamanRiwayat(${p})" class="min-w-[30px] h-[30px] px-2 rounded-lg text-xs font-bold transition-colors cursor-pointer ${
+                            p === riwayatPage ? "bg-sky-700 text-white shadow-sm" : "bg-white border border-slate-200 text-slate-600 hover:bg-slate-100"
+                        }">${p}</button>`
+                    ).join("")}
+                    <button type="button" onclick="gantiHalamanRiwayat(${riwayatPage + 1})" ${riwayatPage >= totalPages ? "disabled" : ""}
+                        class="h-[30px] px-2.5 rounded-lg bg-white border border-slate-200 text-slate-600 font-bold hover:bg-slate-100 disabled:opacity-40 disabled:cursor-not-allowed cursor-pointer">
+                        <i class="fa-solid fa-chevron-right text-[10px]"></i>
+                    </button>
+                </div>
+            `;
+        }
+
+        // ==================== CETAK PDF RIWAYAT RAPI TANPA TERPOTONG ====================
+        function cetakPdfRiwayat() {
+            const filtered = getFilteredRiwayat();
+            if (filtered.length === 0) {
+                alert("Tidak ada data riwayat suhu untuk dicetak.");
+                return;
+            }
+
+            const btn = document.getElementById("btn-cetak-pdf");
+            const originalHtml = btn ? btn.innerHTML : "";
+            if (btn) {
+                btn.disabled = true;
+                btn.innerHTML = `<i class="fa-solid fa-spinner fa-spin"></i> <span>Membuat PDF...</span>`;
+            }
+
+            try {
+                if (window.jspdf && typeof window.jspdf.jsPDF === "function") {
+                    const { jsPDF } = window.jspdf;
+                    const doc = new jsPDF({
+                        orientation: "portrait",
+                        unit: "mm",
+                        format: "a4"
+                    });
+
+                    const pageWidth = doc.internal.pageSize.getWidth();
+                    const pageHeight = doc.internal.pageSize.getHeight();
+                    const marginX = 12;
+                    const contentWidth = pageWidth - (marginX * 2);
+
+                    const tglFilter = document.getElementById("filter-riwayat-tanggal")?.value || "";
+                    const kueri = (document.getElementById("cari-riwayat")?.value || "").trim();
+                    const waktuCetak = new Date().toLocaleString("id-ID", {
+                        day: "2-digit",
+                        month: "long",
+                        year: "numeric",
+                        hour: "2-digit",
+                        minute: "2-digit"
+                    }) + " WIB";
+
+                    doc.setFillColor(7, 89, 133);
+                    doc.roundedRect(marginX, 12, contentWidth, 21, 2.5, 2.5, "F");
+
+                    doc.setTextColor(255, 255, 255);
+                    doc.setFont("helvetica", "bold");
+                    doc.setFontSize(12);
+                    doc.text("LAPORAN RIWAYAT INPUT SUHU PENDINGIN", pageWidth / 2, 20, { align: "center" });
+
+                    doc.setFont("helvetica", "normal");
+                    doc.setFontSize(9.5);
+                    doc.setTextColor(224, 242, 254);
+                    doc.text("UPTD RPH DAN PASAR HEWAN", pageWidth / 2, 27, { align: "center" });
+
+                    const infoFilterTgl = tglFilter
+                        ? new Date(tglFilter + "T00:00:00").toLocaleDateString("id-ID", { day: "2-digit", month: "long", year: "numeric" })
+                        : "Semua Tanggal";
+                    const infoCari = kueri ? ` | Kata Kunci: "${kueri}"` : "";
+                    const filterLine = `Filter Tanggal: ${infoFilterTgl}${infoCari}`;
+
+                    doc.setFont("helvetica", "normal");
+                    doc.setFontSize(8);
+                    const wrappedFilter = doc.splitTextToSize(filterLine, contentWidth - 6);
+                    const infoBoxHeight = 9.5 + (wrappedFilter.length * 4);
+
+                    doc.setFillColor(248, 250, 252);
+                    doc.setDrawColor(203, 213, 225);
+                    doc.roundedRect(marginX, 36, contentWidth, infoBoxHeight, 1.5, 1.5, "FD");
+
+                    doc.setFont("helvetica", "bold");
+                    doc.setFontSize(8.5);
+                    doc.setTextColor(30, 41, 59);
+                    doc.text(`Unit: ${unitLoginAktif || "-"}`, marginX + 3, 41.5);
+                    doc.text(`Total Catatan: ${filtered.length} data`, marginX + 58, 41.5);
+                    doc.text(`Dicetak: ${waktuCetak}`, pageWidth - marginX - 3, 41.5, { align: "right" });
+
+                    doc.setFont("helvetica", "normal");
+                    doc.setFontSize(8);
+                    doc.setTextColor(71, 85, 105);
+                    doc.text(wrappedFilter, marginX + 3, 47);
+
+                    const tableStartY = 36 + infoBoxHeight + 4;
+
+                    const hasAnyFoto = filtered.some(it => Boolean(it.foto));
+                    const bodyRows = filtered.map((item, idx) => {
+                        const unitObj = dataUnits.find(u => u.id === item.unit_id);
+                        const unitNama = getLogUnitName(item) || (unitObj ? unitObj.nama : "-");
+                        const jenisPendingin = item.jenis_pendingin || (unitObj ? unitObj.jenis : "") || item.jenis_ruangan || "-";
+                        const dt = new Date(item.waktu || "");
+                        const tglJam = isNaN(dt.getTime())
+                            ? String(item.waktu || "-")
+                            : `${dt.toLocaleDateString("id-ID", { day: "2-digit", month: "short", year: "numeric" })}\n${dt.toLocaleTimeString("id-ID", { hour: "2-digit", minute: "2-digit" })} WIB`;
+                        const suhuNum = Number(item.suhu);
+                        const suhuStr = isNaN(suhuNum) ? "-" : `${suhuNum.toFixed(1)} °C`;
+
+                        return [
+                            String(idx + 1),
+                            tglJam,
+                            String(item.petugas || "-"),
+                            `${unitNama}\n${jenisPendingin}`,
+                            suhuStr,
+                            item.foto ? "" : "-"
+                        ];
+                    });
+
+                    doc.autoTable({
+                        startY: tableStartY,
+                        tableWidth: contentWidth,
+                        margin: { top: 14, right: marginX, bottom: 17, left: marginX },
+                        head: [["No", "Tanggal & Waktu", "Nama Petugas", "Unit & Jenis Pendingin", "Suhu", "Foto"]],
+                        body: bodyRows,
+                        theme: "grid",
+                        showHead: "everyPage",
+                        rowPageBreak: "avoid",
+                        styles: {
+                            font: "helvetica",
+                            fontSize: 8.5,
+                            cellPadding: { top: 2.5, right: 2.5, bottom: 2.5, left: 2.5 },
+                            valign: "middle",
+                            textColor: [30, 41, 59],
+                            lineColor: [148, 163, 184],
+                            lineWidth: 0.25,
+                            overflow: "linebreak",
+                            minCellHeight: hasAnyFoto ? 15.5 : 9
+                        },
+                        headStyles: {
+                            fillColor: [7, 89, 133],
+                            textColor: [255, 255, 255],
+                            fontStyle: "bold",
+                            fontSize: 8.5,
+                            halign: "center",
+                            valign: "middle",
+                            minCellHeight: 9
+                        },
+                        alternateRowStyles: {
+                            fillColor: [248, 250, 252]
+                        },
+                        columnStyles: {
+                            0: { cellWidth: 11, halign: "center", fontStyle: "bold" },
+                            1: { cellWidth: 34, halign: "left" },
+                            2: { cellWidth: 38, halign: "left", fontStyle: "bold" },
+                            3: { cellWidth: 57, halign: "left" },
+                            4: { cellWidth: 22, halign: "center", fontStyle: "bold" },
+                            5: { cellWidth: 24, halign: "center" }
+                        },
+                        didParseCell: function (data) {
+                            if (data.section === "body" && data.column.index === 4) {
+                                data.cell.styles.textColor = [3, 105, 161];
+                            }
+                        },
+                        didDrawCell: function (data) {
+                            if (data.section === "body" && data.column.index === 5) {
+                                const item = filtered[data.row.index];
+                                if (item && item.foto && typeof item.foto === "string" && item.foto.startsWith("data:image/")) {
+                                    try {
+                                        const fmt = item.foto.startsWith("data:image/png") ? "PNG" : "JPEG";
+                                        const maxW = Math.max(4, data.cell.width - 4);
+                                        const maxH = Math.max(4, data.cell.height - 3);
+                                        let drawW = Math.min(12, maxW, maxH);
+                                        let drawH = drawW;
+
+                                        if (typeof doc.getImageProperties === "function") {
+                                            const props = doc.getImageProperties(item.foto);
+                                            if (props && props.width > 0 && props.height > 0) {
+                                                const ratio = Math.min(Math.min(13, maxW) / props.width, Math.min(13, maxH) / props.height);
+                                                drawW = props.width * ratio;
+                                                drawH = props.height * ratio;
+                                            }
+                                        }
+
+                                        if (drawW > 2 && drawH > 2) {
+                                            const x = data.cell.x + (data.cell.width - drawW) / 2;
+                                            const y = data.cell.y + (data.cell.height - drawH) / 2;
+                                            doc.addImage(item.foto, fmt, x, y, drawW, drawH);
+                                        }
+                                    } catch (imgErr) {}
+                                }
+                            }
+                        }
+                    });
+
+                    const totalPages = doc.internal.getNumberOfPages();
+                    for (let i = 1; i <= totalPages; i++) {
+                        doc.setPage(i);
+                        doc.setDrawColor(226, 232, 240);
+                        doc.line(marginX, pageHeight - 12, pageWidth - marginX, pageHeight - 12);
+
+                        doc.setFont("helvetica", "normal");
+                        doc.setFontSize(7.5);
+                        doc.setTextColor(100, 116, 139);
+                        doc.text("Petugas Input Suhu Pendingin • UPTD RPH dan Pasar Hewan", marginX, pageHeight - 7.5);
+                        doc.text(`Halaman ${i} dari ${totalPages}`, pageWidth - marginX, pageHeight - 7.5, { align: "right" });
+                    }
+
+                    const safeUnit = (unitLoginAktif || "Unit").replace(/[^a-zA-Z0-9_-]/g, "_");
+                    const now = new Date();
+                    const pad = n => String(n).padStart(2, "0");
+                    const stamp = `${now.getFullYear()}${pad(now.getMonth() + 1)}${pad(now.getDate())}_${pad(now.getHours())}${pad(now.getMinutes())}`;
+                    doc.save(`Riwayat_Suhu_${safeUnit}_${stamp}.pdf`);
+                } else {
+                    cetakPdfFallbackPrint(filtered);
+                }
+            } catch (err) {
+                alert("Gagal membuat PDF: " + err.message);
+            } finally {
+                if (btn) {
+                    btn.disabled = false;
+                    btn.innerHTML = originalHtml;
+                }
+            }
+        }
+
+        function cetakPdfFallbackPrint(filtered) {
+            const win = window.open("", "_blank");
+            if (!win) {
+                alert("Pop-up diblokir browser. Izinkan pop-up untuk mencetak PDF.");
+                return;
+            }
+            const rowsHtml = filtered.map((item, idx) => {
+                const unitObj = dataUnits.find(u => u.id === item.unit_id);
+                const unitNama = getLogUnitName(item) || (unitObj ? unitObj.nama : "-");
+                const jenisPendingin = item.jenis_pendingin || (unitObj ? unitObj.jenis : "") || item.jenis_ruangan || "-";
+                const suhuNum = Number(item.suhu);
+                const suhuStr = isNaN(suhuNum) ? "-" : `${suhuNum.toFixed(1)} °C`;
+                const fotoTag = item.foto
+                    ? `<img src="${esc(item.foto)}" style="width:36px;height:36px;object-fit:cover;border-radius:4px;border:1px solid #cbd5e1;display:block;margin:0 auto;">`
+                    : `-`;
+                return `
+                    <tr>
+                        <td style="text-align:center;">${idx + 1}</td>
+                        <td>${formatWaktuIndo(item.waktu)}</td>
+                        <td><b>${esc(item.petugas || "-")}</b></td>
+                        <td><b>${esc(unitNama)}</b><br><small>${esc(jenisPendingin)}</small></td>
+                        <td style="text-align:center;color:#0369a1;"><b>${suhuStr}</b></td>
+                        <td style="text-align:center;">${fotoTag}</td>
+                    </tr>
+                `;
+            }).join("");
+
+            win.document.write(`
+                <!DOCTYPE html>
+                <html lang="id">
+                <head>
+                    <meta charset="UTF-8">
+                    <title>Riwayat Suhu ${esc(unitLoginAktif)}</title>
+                    <style>
+                        @page { size: A4 portrait; margin: 12mm; }
+                        * { box-sizing: border-box; }
+                        body { font-family: Arial, sans-serif; color: #1e293b; font-size: 11px; margin: 0; }
+                        .kop { background: #075985; color: #fff; text-align: center; padding: 10px; border-radius: 6px; margin-bottom: 10px; -webkit-print-color-adjust: exact; print-color-adjust: exact; }
+                        .kop h2 { margin: 0; font-size: 14px; }
+                        .kop p { margin: 3px 0 0; font-size: 11px; }
+                        table { width: 100%; border-collapse: collapse; table-layout: fixed; }
+                        thead { display: table-header-group; }
+                        th, td { border: 1px solid #94a3b8; padding: 6px; word-wrap: break-word; overflow-wrap: anywhere; vertical-align: middle; }
+                        th { background: #075985; color: #fff; font-size: 10px; text-transform: uppercase; -webkit-print-color-adjust: exact; print-color-adjust: exact; }
+                        tr { break-inside: avoid; page-break-inside: avoid; }
+                    </style>
+                </head>
+                <body>
+                    <div class="kop">
+                        <h2>LAPORAN RIWAYAT INPUT SUHU PENDINGIN</h2>
+                        <p>UPTD RPH dan Pasar Hewan • Unit: ${esc(unitLoginAktif)} • Total: ${filtered.length} data</p>
+                    </div>
+                    <table>
+                        <thead>
+                            <tr>
+                                <th style="width:6%;">No</th>
+                                <th style="width:19%;">Tanggal &amp; Waktu</th>
+                                <th style="width:20%;">Nama Petugas</th>
+                                <th style="width:29%;">Unit &amp; Jenis Pendingin</th>
+                                <th style="width:13%;">Suhu</th>
+                                <th style="width:13%;">Foto</th>
+                            </tr>
+                        </thead>
+                        <tbody>${rowsHtml}</tbody>
+                    </table>
+                    <script>window.onload = function(){ window.print(); };<\/script>
+                </body>
+                </html>
+            `);
+            win.document.close();
+        }
+
+        // ==================== POP-UP FOTO ====================
+        function bukaPopupFoto(src, judul, subinfo) {
+            if (!src) return;
+            document.getElementById("popup-img").src = src;
+            document.getElementById("popup-judul").innerText = judul || "Foto Bukti Suhu";
+            document.getElementById("popup-subinfo").innerText = subinfo || "";
+            document.getElementById("modal-popup-foto").classList.remove("hidden");
+        }
+
+        function tutupPopupFoto() {
+            document.getElementById("modal-popup-foto").classList.add("hidden");
+            document.getElementById("popup-img").src = "";
+        }
+
+        // ==================== INISIALISASI ====================
+        window.addEventListener("DOMContentLoaded", () => {
+            sidebarTerbuka = window.innerWidth >= 1024;
+            terapkanStateSidebar();
+            updateWaktuRealtime();
+            setInterval(updateWaktuRealtime, 1000);
+            aktifkanSync();
+        });
+    </script>
+</body>
+</html>
