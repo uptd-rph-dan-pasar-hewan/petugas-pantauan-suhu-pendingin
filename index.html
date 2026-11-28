@@ -310,7 +310,7 @@
                             <!-- Pesan Error / Sukses -->
                             <div id="alert-error" class="hidden bg-rose-50 border border-rose-200 text-rose-700 px-4 py-3 rounded-xl flex items-start gap-2.5 font-medium">
                                 <i class="fa-solid fa-circle-exclamation text-rose-500 text-base shrink-0 mt-0.5"></i>
-                                <span id="alert-error-text">Terjadi kesalahan.</span>
+                                <span id="alert-error-text" class="break-words min-w-0 flex-1">Terjadi kesalahan.</span>
                             </div>
 
                             <div id="alert-success" class="hidden bg-emerald-50 border border-emerald-200 text-emerald-800 px-4 py-3 rounded-xl flex items-start gap-2.5 font-medium">
@@ -475,8 +475,11 @@
                         </div>
 
                         <div class="flex flex-wrap items-center gap-2 w-full sm:w-auto">
-                            <input type="date" id="filter-grafik-tanggal" onchange="renderDiagramGrafik()" title="Filter Tanggal Grafik"
-                                class="flex-1 sm:flex-initial text-xs bg-slate-50 border border-slate-200 rounded-xl px-3 py-2 focus:outline-none focus:border-sky-500 font-semibold">
+                            <div class="flex items-center gap-1.5 bg-slate-50 border border-slate-200 rounded-xl px-2.5 py-1.5 flex-1 sm:flex-initial">
+                                <span class="text-[10px] font-bold text-slate-400 uppercase shrink-0">Tgl:</span>
+                                <input type="date" id="filter-grafik-tanggal" onchange="renderDiagramGrafik()" title="Filter Tanggal Grafik"
+                                    class="text-xs bg-transparent focus:outline-none font-semibold text-slate-700 w-full">
+                            </div>
                             <button type="button" onclick="resetFilterTanggalGrafik()"
                                 class="text-xs font-bold px-3 py-2 rounded-xl bg-slate-100 hover:bg-slate-200 text-slate-700 border border-slate-200 cursor-pointer shrink-0">
                                 Semua Tanggal
@@ -505,8 +508,15 @@
                         </div>
 
                         <div class="flex flex-wrap items-center gap-2 w-full sm:w-auto">
-                            <input type="date" id="filter-riwayat-tanggal" onchange="resetPageDanRenderRiwayat()" title="Filter Tanggal"
-                                class="text-xs bg-white border border-slate-200 rounded-xl px-3 py-2 focus:outline-none focus:border-sky-500 font-semibold">
+                            <div class="flex items-center gap-1.5 bg-white border border-slate-200 rounded-xl px-2.5 py-1.5">
+                                <span class="text-[10px] font-bold text-slate-400 uppercase shrink-0">Tgl:</span>
+                                <input type="date" id="filter-riwayat-tanggal" onchange="resetPageDanRenderRiwayat()" title="Filter Tanggal"
+                                    class="text-xs bg-transparent focus:outline-none font-semibold text-slate-700">
+                                <button type="button" id="btn-reset-tgl-riwayat" onclick="resetFilterTanggalRiwayat()" title="Tampilkan Semua Tanggal"
+                                    class="hidden text-[10px] font-bold px-2 py-0.5 rounded-lg bg-slate-100 hover:bg-slate-200 text-slate-600 cursor-pointer shrink-0">
+                                    Semua
+                                </button>
+                            </div>
                             <input type="text" id="cari-riwayat" oninput="resetPageDanRenderRiwayat()" placeholder="Cari petugas / jenis pendingin..."
                                 class="flex-1 sm:w-48 text-xs px-3 py-2 bg-white border border-slate-200 rounded-xl focus:outline-none focus:border-sky-500">
                             <button type="button" id="btn-cetak-pdf" onclick="cetakPdfRiwayat()"
@@ -819,6 +829,35 @@
                 .replace(/>/g, "\\u003e");
         }
 
+        // Hapus key yang bernilai undefined / NaN agar Firebase .set() tidak pernah gagal
+        function bersihkanUndefined(obj) {
+            const hasil = {};
+            if (!obj || typeof obj !== "object") return hasil;
+            Object.entries(obj).forEach(([k, v]) => {
+                if (v === undefined) return;
+                if (typeof v === "number" && isNaN(v)) return;
+                hasil[k] = v;
+            });
+            return hasil;
+        }
+
+        function urutkanDanDedupLogs(logs) {
+            const seen = new Set();
+            return (logs || [])
+                .filter(item => {
+                    if (!item) return false;
+                    const key = item.id ? String(item.id) : `${item.waktu || ""}|${item.petugas || ""}|${item.unit_id || ""}|${item.suhu || ""}`;
+                    if (seen.has(key)) return false;
+                    seen.add(key);
+                    return true;
+                })
+                .sort((a, b) => {
+                    const diff = new Date(b.waktu || 0) - new Date(a.waktu || 0);
+                    if (!isNaN(diff) && diff !== 0) return diff;
+                    return String(b.id || "").localeCompare(String(a.id || ""));
+                });
+        }
+
         function getUniqueUnitNames() {
             const list = [];
             const seen = new Set();
@@ -911,9 +950,16 @@
 
         function evaluasiStatusSuhu(suhu, minVal, maxVal) {
             const t = Number(suhu);
+            const minKosong = minVal === null || minVal === undefined || minVal === "";
+            const maxKosong = maxVal === null || maxVal === undefined || maxVal === "";
+
+            if (isNaN(t) || minKosong || maxKosong) {
+                return { status: "Normal", keterangan: "Suhu tercatat" };
+            }
+
             const min = Number(minVal);
             const max = Number(maxVal);
-            if (isNaN(t) || isNaN(min) || isNaN(max)) {
+            if (isNaN(min) || isNaN(max)) {
                 return { status: "Normal", keterangan: "Suhu tercatat" };
             }
             if (t > max) {
@@ -1018,7 +1064,7 @@
 
                 dataUnits = rawUnits ? (JSON.parse(rawUnits) || []) : getDefaultUnits();
                 dataPetugas = rawPetugas ? (JSON.parse(rawPetugas) || []) : getDefaultPetugas();
-                dataLogs = rawLogs ? (JSON.parse(rawLogs) || []) : [];
+                dataLogs = rawLogs ? urutkanDanDedupLogs(JSON.parse(rawLogs) || []) : [];
 
                 if (rawSettings) {
                     const st = JSON.parse(rawSettings) || {};
@@ -1116,8 +1162,8 @@
                 .on("value", snap => {
                     const val = snap.val();
                     if (val) {
-                        dataLogs = Object.entries(val).map(([k, v]) => ({ ...v, id: v.id || k }));
-                        dataLogs.sort((a, b) => new Date(b.waktu || 0) - new Date(a.waktu || 0));
+                        const rawList = Object.entries(val).map(([k, v]) => ({ ...v, id: v.id || k }));
+                        dataLogs = urutkanDanDedupLogs(rawList);
                     } else {
                         dataLogs = [];
                     }
@@ -1393,58 +1439,82 @@
                 return;
             }
 
+            const suhu = parseFloat(suhuStr);
+            if (isNaN(suhu)) {
+                errText.innerText = "Nilai suhu terukur tidak valid.";
+                errBox.classList.remove("hidden");
+                return;
+            }
+
             if (!fotoTerpilihDataUrl) {
                 errText.innerText = "Mohon ambil foto lewat Kamera HP atau pilih file foto bukti.";
                 errBox.classList.remove("hidden");
                 return;
             }
 
-            const suhu = parseFloat(suhuStr);
-            const ev = evaluasiStatusSuhu(suhu, unit.suhu_min, unit.suhu_max);
+            const rawMin = unit.suhu_min;
+            const rawMax = unit.suhu_max;
+            const suhuMinVal = (rawMin !== undefined && rawMin !== null && rawMin !== "" && !isNaN(Number(rawMin))) ? Number(rawMin) : null;
+            const suhuMaxVal = (rawMax !== undefined && rawMax !== null && rawMax !== "" && !isNaN(Number(rawMax))) ? Number(rawMax) : null;
+
+            const ev = evaluasiStatusSuhu(suhu, suhuMinVal, suhuMaxVal);
             const waktuSekarang = getNowDateTimeLocal();
             const logId = "log_" + Date.now();
             const jenisPendingin = unit.jenis || "Pendingin";
-
             const catatanLengkap = catatanUser || `${unitDipilih} • ${jenisPendingin}`;
 
-            const logBaru = {
+            const logBaru = bersihkanUndefined({
                 id: logId,
-                unit_id: unit.id,
-                nama_unit: unit.nama,
+                unit_id: unit.id || unitId,
+                nama_unit: unit.nama || unitDipilih,
                 jenis_pendingin: jenisPendingin,
                 jenis_ruangan: jenisPendingin,
                 lokasi: unit.lokasi || "",
                 suhu: suhu,
-                suhu_min: unit.suhu_min,
-                suhu_max: unit.suhu_max,
+                suhu_min: suhuMinVal,
+                suhu_max: suhuMaxVal,
                 status: ev.status,
                 waktu: waktuSekarang,
-                petugas_id: ptg.id,
-                petugas: ptg.nama,
+                petugas_id: ptg.id || ptgId,
+                petugas: ptg.nama || "",
                 unit_petugas: unitDipilih,
                 catatan: catatanLengkap,
                 foto: fotoTerpilihDataUrl,
-                foto_nama: fotoTerpilihNama
-            };
+                foto_nama: fotoTerpilihNama || "Foto_Bukti.jpg"
+            });
+
+            const unitTerbaru = bersihkanUndefined({
+                ...unit,
+                id: unit.id || unitId,
+                nama: unit.nama || unitDipilih,
+                jenis: jenisPendingin,
+                suhu_min: suhuMinVal,
+                suhu_max: suhuMaxVal,
+                suhu_terkini: suhu,
+                updated_at: waktuSekarang,
+                petugas_terakhir: ptg.nama || ""
+            });
 
             btn.disabled = true;
             btn.innerHTML = `<i class="fa-solid fa-spinner fa-spin"></i> <span>Mengirim Data...</span>`;
 
             try {
-                dataLogs.unshift(logBaru);
-                unit.suhu_terkini = suhu;
-                unit.updated_at = waktuSekarang;
-                unit.petugas_terakhir = ptg.nama;
-                simpanLokal();
-
                 if (database) {
                     await Promise.all([
                         database.ref("pantauan_suhu_pendingin/logs/" + logId).set(logBaru),
-                        database.ref("pantauan_suhu_pendingin/units/" + unit.id).set(unit)
+                        database.ref("pantauan_suhu_pendingin/units/" + unitTerbaru.id).set(unitTerbaru)
                     ]);
                 }
 
-                const ringkasan = `${ptg.nama} • ${unitDipilih} (${jenisPendingin}): ${suhu.toFixed(1)} °C pada ${formatWaktuIndo(waktuSekarang)}.`;
+                // Hindari duplikasi jika listener Firebase .on("value") sudah memasukkan logBaru ke dataLogs
+                if (!dataLogs.some(l => l.id === logBaru.id)) {
+                    dataLogs.unshift(logBaru);
+                }
+                dataLogs = urutkanDanDedupLogs(dataLogs);
+                Object.assign(unit, unitTerbaru);
+                simpanLokal();
+
+                const ringkasan = `${ptg.nama || ""} • ${unitDipilih} (${jenisPendingin}): ${suhu.toFixed(1)} °C pada ${formatWaktuIndo(waktuSekarang)}.`;
                 okText.innerText = ringkasan;
                 okBox.classList.remove("hidden");
 
@@ -1634,16 +1704,34 @@
         // ==================== TABEL RIWAYAT KHUSUS UNIT LOGIN ====================
         function getFilteredRiwayat() {
             const tglFilter = document.getElementById("filter-riwayat-tanggal")?.value || "";
-            const kueri = (document.getElementById("cari-riwayat")?.value || "").toLowerCase();
+            const kueri = (document.getElementById("cari-riwayat")?.value || "").toLowerCase().trim();
             const unitKey = String(unitLoginAktif || "").trim().toLowerCase();
 
-            return dataLogs.filter(item => {
+            return urutkanDanDedupLogs(dataLogs).filter(item => {
                 const logUnit = getLogUnitName(item).toLowerCase();
                 const matchLoginUnit = !unitKey || logUnit === unitKey;
-                const matchTgl = !tglFilter || String(item.waktu || "").startsWith(tglFilter);
-                const teks = `${item.petugas || ""} ${item.unit_petugas || ""} ${item.nama_unit || ""} ${item.jenis_pendingin || ""}`.toLowerCase();
-                return matchLoginUnit && matchTgl && teks.includes(kueri);
+                const matchTgl = !tglFilter || extractLogDateKey(item.waktu) === tglFilter;
+                if (!matchLoginUnit || !matchTgl) return false;
+                if (!kueri) return true;
+
+                const teks = [
+                    item.petugas || "",
+                    getLogUnitName(item),
+                    getLogJenisName(item),
+                    item.unit_petugas || "",
+                    item.nama_unit || "",
+                    item.jenis_pendingin || "",
+                    item.jenis_ruangan || "",
+                    item.catatan || ""
+                ].join(" ").toLowerCase();
+                return teks.includes(kueri);
             });
+        }
+
+        function resetFilterTanggalRiwayat() {
+            const inp = document.getElementById("filter-riwayat-tanggal");
+            if (inp) inp.value = "";
+            resetPageDanRenderRiwayat();
         }
 
         function resetPageDanRenderRiwayat() {
@@ -1660,6 +1748,12 @@
             const tbody = document.getElementById("tbody-riwayat");
             const pagEl = document.getElementById("pagination-riwayat");
             const countInfo = document.getElementById("riwayat-count-info");
+            const tglFilter = document.getElementById("filter-riwayat-tanggal")?.value || "";
+            const btnResetTgl = document.getElementById("btn-reset-tgl-riwayat");
+
+            if (btnResetTgl) {
+                btnResetTgl.classList.toggle("hidden", !tglFilter);
+            }
             if (!tbody) return;
 
             const filtered = getFilteredRiwayat();
@@ -1690,14 +1784,21 @@
             tbody.innerHTML = paged.map((item, idx) => {
                 const nomor = startIdx + idx + 1;
                 const unitObj = dataUnits.find(u => u.id === item.unit_id);
-                const unitNama = getLogUnitName(item) || (unitObj ? unitObj.nama : "");
-                const jenisPendingin = item.jenis_pendingin || (unitObj ? unitObj.jenis : "") || item.jenis_ruangan || "";
+                const unitNama = getLogUnitName(item) || (unitObj ? unitObj.nama : "-");
+                const jenisPendingin = getLogJenisName(item) || (unitObj ? unitObj.jenis : "") || "-";
                 const waktuSplit = formatTanggalJamSplit(item.waktu);
+
+                const suhuNum = Number(item.suhu);
+                const suhuValid = item.suhu !== null && item.suhu !== "" && !isNaN(suhuNum);
+                const suhuDisplay = suhuValid
+                    ? `${suhuNum.toFixed(1)}<span class="text-[9px] sm:text-xs">°C</span>`
+                    : "-";
+                const suhuTeksPopup = suhuValid ? `${suhuNum.toFixed(1)} °C` : "-";
 
                 const suhuCls = item.status === "Kritis" ? "text-rose-600" : (item.status === "Peringatan" ? "text-amber-600" : "text-sky-700");
 
-                const judulPopup = `${unitNama}${jenisPendingin ? ` (${jenisPendingin})` : ""}`;
-                const subinfoPopup = `${item.petugas || ""} • ${Number(item.suhu).toFixed(1)} °C • ${formatWaktuIndo(item.waktu)}`;
+                const judulPopup = `${unitNama}${jenisPendingin && jenisPendingin !== "-" ? ` (${jenisPendingin})` : ""}`;
+                const subinfoPopup = `${item.petugas || "-"} • ${suhuTeksPopup} • ${formatWaktuIndo(item.waktu)}`;
 
                 const avatarHtml = item.foto
                     ? `<img src="${esc(item.foto)}" alt="Foto" loading="lazy" decoding="async"
@@ -1713,16 +1814,16 @@
                     <tr class="hover:bg-slate-50 transition-colors">
                         <td class="border border-slate-300 px-1 sm:px-3 py-2 sm:py-3 text-center font-bold text-slate-600 break-words">${nomor}</td>
                         <td class="border border-slate-300 px-1 sm:px-3.5 py-2 sm:py-3 font-medium text-slate-700 leading-tight break-words">
-                            <span class="block font-semibold text-slate-800">${esc(waktuSplit.tgl)}</span>
+                            <span class="block font-semibold text-slate-800">${esc(waktuSplit.tgl || "-")}</span>
                             <span class="block text-[9px] sm:text-[11px] text-slate-500">${esc(waktuSplit.jam)}</span>
                         </td>
-                        <td class="border border-slate-300 px-1.5 sm:px-3.5 py-2 sm:py-3 font-bold text-slate-800 leading-tight break-words">${esc(item.petugas || "")}</td>
+                        <td class="border border-slate-300 px-1.5 sm:px-3.5 py-2 sm:py-3 font-bold text-slate-800 leading-tight break-words">${esc(item.petugas || "-")}</td>
                         <td class="border border-slate-300 px-1.5 sm:px-4 py-2 sm:py-3 leading-tight break-words">
                             <p class="font-bold text-slate-900">${esc(unitNama)}</p>
                             <p class="text-[9px] sm:text-[11px] font-semibold text-sky-700 mt-0.5">${esc(jenisPendingin)}</p>
                         </td>
                         <td class="border border-slate-300 px-1 sm:px-3 py-2 sm:py-3 text-center font-black ${suhuCls} leading-tight break-words">
-                            ${Number(item.suhu).toFixed(1)}<span class="text-[9px] sm:text-xs">°C</span>
+                            ${suhuDisplay}
                         </td>
                         <td class="border border-slate-300 px-1 sm:px-3 py-2 sm:py-3 text-center">${avatarHtml}</td>
                     </tr>
@@ -1850,13 +1951,13 @@
                     const bodyRows = filtered.map((item, idx) => {
                         const unitObj = dataUnits.find(u => u.id === item.unit_id);
                         const unitNama = getLogUnitName(item) || (unitObj ? unitObj.nama : "-");
-                        const jenisPendingin = item.jenis_pendingin || (unitObj ? unitObj.jenis : "") || item.jenis_ruangan || "-";
+                        const jenisPendingin = getLogJenisName(item) || (unitObj ? unitObj.jenis : "") || "-";
                         const dt = new Date(item.waktu || "");
                         const tglJam = isNaN(dt.getTime())
                             ? String(item.waktu || "-")
                             : `${dt.toLocaleDateString("id-ID", { day: "2-digit", month: "short", year: "numeric" })}\n${dt.toLocaleTimeString("id-ID", { hour: "2-digit", minute: "2-digit" })} WIB`;
                         const suhuNum = Number(item.suhu);
-                        const suhuStr = isNaN(suhuNum) ? "-" : `${suhuNum.toFixed(1)} °C`;
+                        const suhuStr = (item.suhu === null || item.suhu === "" || isNaN(suhuNum)) ? "-" : `${suhuNum.toFixed(1)} °C`;
 
                         return [
                             String(idx + 1),
@@ -1984,9 +2085,9 @@
             const rowsHtml = filtered.map((item, idx) => {
                 const unitObj = dataUnits.find(u => u.id === item.unit_id);
                 const unitNama = getLogUnitName(item) || (unitObj ? unitObj.nama : "-");
-                const jenisPendingin = item.jenis_pendingin || (unitObj ? unitObj.jenis : "") || item.jenis_ruangan || "-";
+                const jenisPendingin = getLogJenisName(item) || (unitObj ? unitObj.jenis : "") || "-";
                 const suhuNum = Number(item.suhu);
-                const suhuStr = isNaN(suhuNum) ? "-" : `${suhuNum.toFixed(1)} °C`;
+                const suhuStr = (item.suhu === null || item.suhu === "" || isNaN(suhuNum)) ? "-" : `${suhuNum.toFixed(1)} °C`;
                 const fotoTag = item.foto
                     ? `<img src="${esc(item.foto)}" style="width:36px;height:36px;object-fit:cover;border-radius:4px;border:1px solid #cbd5e1;display:block;margin:0 auto;">`
                     : `-`;
